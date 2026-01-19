@@ -1,0 +1,121 @@
+/* UsuariosPage.css */
+
+:root {
+  --verde: #2e7d32;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --crema: #faf7f2;
+  --marron: #4a2b13; /* Café Oscuro (para headers, títulos) */
+  --cafe-claro: #f4eee9; /* Fondo suave para filtros/cards */
+  --gris-texto: #6c757d;
+}
+
+/* ---------------------------------- */
+/* BASE Y HEADER CON GRADIENTE */
+/* ---------------------------------- */
+.usuarios-page {
+    background-color: var(--crema);
+    min-height: 100vh;
+}
+.modulo-header-usuarios {
+    /* Gradiente de Rojo a Verde */
+    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 0 0 15px 15px; 
+}
+.page-title-usuarios {
+    color: white;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+}
+.page-subtitle-usuarios {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1rem;
+}
+
+/* ---------------------------------- */
+/* KPI CARDS (Estadísticas) */
+/* ---------------------------------- */
+.kpi-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+    border: none;
+    border-left: 5px solid !important; /* Usa el color de Bootstrap */
+    height: 100%;
+}
+.kpi-card:hover {
+    transform: translateY(-3px);
+}
+.kpi-label {
+    color: var(--gris-texto);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+.kpi-value {
+    font-weight: 800;
+    font-size: 1.6rem;
+}
+.kpi-marron { border-left-color: var(--marron) !important; }
+.kpi-verde { border-left-color: var(--verde) !important; }
+.kpi-rojo { border-left-color: var(--rojo) !important; }
+.kpi-amarillo { border-left-color: var(--amarillo) !important; }
+
+/* ---------------------------------- */
+/* BOTÓN PRINCIPAL */
+/* ---------------------------------- */
+.btn-modern {
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 20px;
+}
+.btn-nuevo-usuario {
+    background-color: var(--rojo) !important;
+    border-color: var(--rojo) !important;
+    box-shadow: 0 3px 6px rgba(183, 28, 28, 0.4);
+}
+.btn-nuevo-usuario:hover {
+    background-color: #9f1a1a !important;
+}
+
+/* ---------------------------------- */
+/* FILTROS Y TABLA */
+/* ---------------------------------- */
+.filtro-card-modern {
+    background-color: var(--cafe-claro) !important;
+    border-radius: 10px;
+}
+.filtro-card-modern .form-control,
+.filtro-card-modern .form-select {
+    border-radius: 8px;
+}
+
+/* Tabla de Usuarios */
+.usuarios-table thead th {
+    background-color: var(--marron) !important; 
+    color: white;
+    font-weight: 700;
+}
+.usuarios-table tbody td {
+    vertical-align: middle;
+    color: #495057;
+    font-size: 0.95rem;
+}
+.usuarios-table .badge {
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* ---------------------------------- */
+/* MODAL */
+/* ---------------------------------- */
+.modal-header-custom {
+    background-color: var(--cafe-claro);
+}
+.modal-footer .btn-guardar-modal {
+    background-color: var(--rojo) !important;
+    border-color: var(--rojo) !important;
+}

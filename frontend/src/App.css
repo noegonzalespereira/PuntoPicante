@@ -1,0 +1,52 @@
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--crema); /* Fondo personalizado */
+}
+
+.card {
+  padding: 2em;
+  width: 100%; /* Para asegurar que la tarjeta ocupe el espacio disponible */
+  max-width: 450px; /* Limitar el tamaño máximo para pantallas grandes */
+  border-radius: 15px;
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  transition: filter 300ms;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}

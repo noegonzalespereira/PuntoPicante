@@ -1,0 +1,115 @@
+/* DashboardPage.css */
+
+:root {
+  --verde: #2e7d32;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --crema: #faf7f2;
+  --marron: #4a2b13; /* Café Oscuro */
+  --gris-claro: #f4eee9; /* Fondo suave */
+  --verde-claro: #e8f5e9; 
+  --rojo-suave: #fce7e7;
+}
+
+/* ---------------------------------- */
+/* BASE Y HEADER CON GRADIENTE */
+/* ---------------------------------- */
+.dashboard-page {
+    background-color: var(--crema);
+    min-height: 100vh;
+    display: flex;
+  flex-direction: column;
+}
+.modulo-header-dashboard {
+    /* Gradiente de Rojo a Verde */
+    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 0 0 15px 15px; 
+}
+.page-title-dashboard {
+    color: white;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+}
+.page-subtitle-dashboard {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1rem;
+}
+
+/* ---------------------------------- */
+/* KPI CARDS (Métricas Clave) */
+/* ---------------------------------- */
+.kpi-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+    border: none;
+    position: relative;
+    padding: 20px 20px !important;
+}
+.kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Fondos específicos y bordes de acento */
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+}
+.kpi-amarillo { background-color: #fffbe6; border-left: 5px solid var(--amarillo) !important; }
+.kpi-verde-claro { background-color: var(--verde-claro); border-left: 5px solid var(--verde) !important; }
+.kpi-rojo-claro { background-color: var(--rojo-suave); border-left: 5px solid var(--rojo) !important; }
+.kpi-marron { background-color: var(--gris-claro); border-left: 5px solid var(--marron) !important; }
+
+/* Tipografía de KPI */
+.kpi-label {
+    color: #6c757d;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+.kpi-value {
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: var(--marron); 
+    line-height: 1.2;
+}
+.kpi-value-verde { color: var(--verde) !important; }
+.kpi-value-rojo { color: var(--rojo) !important; }
+
+/* Íconos de fondo para KPI */
+.kpi-card svg {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.15;
+}
+
+/* ---------------------------------- */
+/* ALERTAS E INFORMES SECUNDARIOS */
+/* ---------------------------------- */
+.card-alert-stock {
+    background-color: var(--rojo-suave) !important;
+    border: 1px solid var(--rojo);
+    border-radius: 10px;
+}
+.card-alert-stock .alert {
+    border: none;
+    margin: 0;
+}
+.card-informe-resumen {
+    background-color: var(--cafe-claro) !important;
+    border-radius: 10px;
+}
+.text-dark-gray {
+    color: #343a40;
+}

@@ -1,0 +1,372 @@
+/* CajaPage.css */
+
+:root {
+  --marron: #4a2b13; /* Café Oscuro */
+  --verde: #2e7d32; /* Éxito */
+  --rojo: #b71c1c; /* Peligro */
+  --crema: #faf7f2; /* Fondo */
+  --gris-claro: #f8f9fa;
+  --cafe-claro: #f1e7da; /* Nuevo color para headers de tabla */
+}
+
+body {
+    background-color: var(--crema); /* Asegura que el fondo de la página sea crema */
+}
+
+/* ---------------------------------- */
+/* CONTENEDOR BASE Y HEADER PRINCIPAL */
+/* ---------------------------------- */
+.caja-container-fluid {
+  background-color: var(--crema);
+  min-height: 100vh;  /* Asegura que ocupe toda la pantalla */
+  padding-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Nuevo Header con Gradiente - SEGÚN IMAGEN 1 */
+.caja-page-header {
+    background: linear-gradient(to right, #b71c1c, #2e7d32); /* Rojo a Verde */
+    color: white;
+    padding: 25px 30px;
+    margin-bottom: 25px; /* Espacio debajo del header */
+    border-radius: 0 0 15px 15px; /* Bordes redondeados abajo */
+}
+.caja-page-header .header-content {
+    max-width: 1200px; /* Limita el ancho del contenido si es muy fluido */
+    margin: 0 auto;
+}
+.caja-page-header .page-title-caja {
+    color: white;
+    font-weight: 800;
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+}
+.caja-page-header .text-white-50 {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1.1rem;
+}
+
+/* ---------------------------------- */
+/* 1. CARDS DE ESTADO Y CONTROL */
+/* ---------------------------------- */
+/* CajaPage.css */
+
+/* Establecer un contenedor que ocupe el 100% de la altura */
+.caja-container-fluid {
+  background-color: var(--crema);
+  min-height: 100vh;  /* Asegura que ocupe toda la pantalla */
+  padding-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Asegurarse de que las tarjetas se ajusten correctamente */
+.caja-status-card,
+.caja-historico-card {
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: none;
+  margin-bottom: 15px; /* Evitar que se amontonen */
+  background-color: white;
+  height: auto;
+}
+
+.caja-status-card .status-title-red {
+    color: var(--rojo);
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+.caja-status-card .status-description {
+    color: #6c757d; /* Gris para descripción */
+    font-size: 1rem;
+}
+
+/* Estilos para la sección "No Tienes Caja Abierta" - SEGÚN IMAGEN 1 */
+.status-box-closed {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fce7e7; /* Fondo rojo claro */
+    border-left: 5px solid var(--rojo);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.status-info-left {
+    display: flex;
+    align-items: center;
+}
+.status-icon-sm {
+    color: var(--rojo);
+}
+.badge-cerrada {
+    background-color: var(--rojo) !important;
+    color: white;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.input-label {
+    font-weight: 600;
+    color: var(--marron);
+    margin-bottom: 5px;
+}
+.input-monto {
+    border-color: #ced4da;
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+.btn-abrir-caja {
+    background-color: var(--verde);
+    border-color: var(--verde);
+    font-weight: 600;
+    padding: 10px 15px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+.btn-abrir-caja:hover {
+    background-color: #218838;
+    border-color: #218838;
+}
+
+/* Estilos para Caja Abierta (si se mantiene) */
+.caja-status-card .status-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+.caja-status-card .status-icon-lg {
+    padding: 8px;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.caja-status-card .status-title {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+.caja-status-card .status-badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+.caja-status-card .status-badge.badge-success { background-color: var(--verde); color: white; }
+
+.caja-status-card .monto-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+.caja-status-card .monto-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--marron);
+}
+.btn-caja {
+    font-weight: 600;
+    border-radius: 8px;
+    transition: background 0.3s;
+}
+
+/* ---------------------------------- */
+/* 2. CARDS SECUNDARIAS (CAJAS ACTIVAS, FILTROS) */
+/* ---------------------------------- */
+.caja-card-min {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: none;
+    height: 100%;
+    background-color: white;
+}
+
+.section-icon-md {
+    color: var(--marron);
+    font-size: 1.5rem;
+}
+.section-subtitle-small {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+/* Lista de Cajeros Activos Compacta - SEGÚN IMAGEN 2 */
+.cajas-activas-list-compact {
+    border-top: 1px solid var(--gris-claro);
+    padding-top: 15px;
+}
+.caja-activa-item-compact {
+    display: flex;
+    align-items: flex-start; /* Alinea arriba por defecto */
+    padding: 10px 0;
+    border-bottom: 1px dashed #e0e0e0;
+}
+.caja-activa-item-compact:last-child {
+    border-bottom: none;
+}
+.cajero-avatar-sm {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background-color: #e0f2f1; /* Verde claro */
+    color: #00796b; /* Verde oscuro */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0; /* Evita que el avatar se encoja */
+}
+.cajero-info-compact {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+.cajero-info-compact p {
+    margin-bottom: 0;
+    line-height: 1.2;
+}
+.caja-monto-activa-compact {
+    text-align: right;
+    flex-shrink: 0; /* Evita que el monto se encoja */
+    min-width: 100px; /* Asegura espacio mínimo para el monto */
+}
+.caja-monto-activa-compact .monto-value-activa-compact {
+    color: var(--verde);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+.btn-caja-filtro {
+    background-color: var(--marron);
+    border-color: var(--marron);
+    font-weight: 600;
+    padding: 8px 15px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+.btn-caja-filtro:hover {
+    background-color: #6a4a2b; /* Tono más oscuro de marron */
+    border-color: #6a4a2b;
+}
+
+/* ---------------------------------- */
+/* 3. TABLA DE HISTORIAL */
+/* ---------------------------------- */
+.caja-historial-table {
+    border-collapse: separate; /* Necesario para border-radius en td */
+    border-spacing: 0;
+}
+.caja-historial-table thead th {
+    background-color: var(--cafe-claro);
+    color: var(--marron);
+    font-weight: 700;
+    padding: 12px 15px;
+    border-top: 1px solid var(--gris-claro);
+    border-bottom: 1px solid var(--gris-claro);
+}
+.caja-historial-table tbody tr {
+    background-color: white;
+    transition: background-color 0.2s ease;
+}
+.caja-historial-table tbody tr:hover {
+    background-color: #fdfdfd;
+}
+.caja-historial-table tbody td {
+    vertical-align: middle;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+.caja-historial-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.caja-historial-table .td-bold {
+    font-weight: 600;
+    color: var(--marron);
+}
+.caja-historial-table .td-monto {
+    font-weight: 600;
+    color: var(--verde); /* Montos en verde para visibilidad */
+}
+.caja-historial-table .estado-badge {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    min-width: 70px;
+    display: inline-block;
+    text-align: center;
+}
+.caja-historial-table .estado-badge.bg-success {
+    background-color: var(--verde) !important;
+}
+.caja-historial-table .estado-badge.bg-secondary {
+    background-color: #6c757d !important;
+}
+
+
+/* ---------------------------------- */
+/* RESPONSIVIDAD */
+/* ---------------------------------- */
+@media (max-width: 991.98px) { /* Medium y Small devices */
+    .caja-page-header .page-title-caja {
+        font-size: 2rem;
+    }
+    .caja-status-card {
+        margin-bottom: 20px; /* Añade espacio entre cards en stacks */
+    }
+    .caja-activa-item-compact {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .cajero-info-compact {
+        width: 100%;
+        margin-left: 50px; /* Alinea con el texto despues del avatar */
+    }
+    .caja-monto-activa-compact {
+        width: 100%;
+        text-align: left;
+        margin-left: 50px;
+        margin-top: 5px;
+    }
+}
+
+@media (max-width: 767.98px) { /* Small devices (móviles) */
+    .caja-page-header {
+        padding: 20px 15px;
+    }
+    .caja-page-header .page-title-caja {
+        font-size: 1.8rem;
+    }
+    .caja-page-header .text-white-50 {
+        font-size: 1rem;
+    }
+    .caja-container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .g-4.px-3 {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
+    .status-box-closed {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+    }
+    .status-info-left {
+        margin-bottom: 10px;
+    }
+    .badge-cerrada {
+        align-self: flex-end; /* Asegura que el badge se alinee a la derecha */
+    }
+    .caja-historial-table thead th,
+    .caja-historial-table tbody td {
+        padding: 8px 10px; /* Reduce padding en tabla para móvil */
+        font-size: 0.85rem;
+    }
+    .caja-historial-table .td-monto {
+        min-width: 90px; /* Asegura que no se rompa el monto */
+    }
+}

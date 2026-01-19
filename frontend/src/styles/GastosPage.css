@@ -1,0 +1,99 @@
+/* GastosPage.css (CSS para el módulo de Gastos) */
+
+:root {
+  --verde: #2e7d32;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --crema: #faf7f2;
+  --marron: #4a2b13;
+}
+
+/* ---------------------------------- */
+/* BASE Y HEADER (APLICACIÓN DEL GRADIENTE) */
+/* ---------------------------------- */
+.gastos-page {
+    background-color: var(--crema);
+    min-height: 100vh;
+}
+.modulo-header-gastos {
+    /* Gradiente de Rojo a Verde - Color de la Cabecera */
+    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 0 0 15px 15px; 
+}
+.page-title-gastos {
+    color: white;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+}
+.page-subtitle-gastos {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1rem;
+}
+
+/* ---------------------------------- */
+/* KPI CARDS Y BOTONES */
+/* ---------------------------------- */
+.kpi-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+    border-left: 5px solid !important; /* Usa el color del borde de la clase de Bootstrap */
+    padding: 15px;
+}
+.kpi-card h5 {
+    font-weight: 600;
+    font-size: 1rem;
+}
+.kpi-card h3 {
+    font-weight: 800;
+    font-size: 1.6rem;
+}
+
+/* Estilo del botón principal */
+.btn-nuevo-gasto {
+    background-color: var(--verde) !important;
+    border-color: var(--verde) !important;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 10px;
+}
+.btn-nuevo-gasto:hover {
+    background-color: #245c24 !important;
+    border-color: #245c24 !important;
+}
+.btn-modern {
+    font-weight: 600;
+    border-radius: 8px;
+}
+.btn-modern.btn-primary {
+    background-color: var(--marron) !important;
+    border-color: var(--marron) !important;
+}
+
+
+/* ---------------------------------- */
+/* TABLA Y FILTROS */
+/* ---------------------------------- */
+.gastos-table-modern thead th {
+    background-color: var(--cafe-claro); /* Fondo suave */
+    color: var(--marron);
+    font-weight: 700;
+    border-top: 1px solid #ddd !important;
+}
+.gastos-table-modern tbody tr:hover {
+    background-color: #fdfdfd;
+}
+.gastos-table-modern tbody td {
+    color: #495057;
+}
+
+/* Asegurar que las filas de la tabla sean legibles */
+.gastos-table-modern tbody tr:nth-child(odd) {
+    background-color: var(--crema);
+}
+.gastos-table-modern tbody tr:nth-child(even) {
+    background-color: white;
+}

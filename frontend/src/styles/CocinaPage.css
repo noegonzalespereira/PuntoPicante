@@ -1,0 +1,119 @@
+:root {
+  --verde: #2e7d32;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --crema: #faf7f2;
+  --marron: #4a2b13;
+  --gris-claro: #f8f9fa;
+  --gris-medio: #6c757d;
+}
+
+
+.container-fluid-cocina {
+    background-color: var(--crema);
+    min-height: 100vh;
+}
+
+.modulo-header-cocina {
+    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 0 0 15px 15px; 
+}
+.page-title-cocina {
+    color: white;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+}
+.page-subtitle-cocina {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1rem;
+}
+
+
+.card-resumen {
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+    padding: 15px;
+}
+.card-resumen:hover {
+    transform: translateY(-3px);
+}
+.card-pendiente-resumen {
+    border-left: 5px solid var(--marron);
+}
+.card-listo-resumen {
+    border-left: 5px solid var(--verde);
+}
+.card-resumen h5 {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--gris-medio); 
+}
+.card-resumen h3 {
+    font-weight: 800;
+    font-size: 1.6rem;
+}
+
+
+.card-pedido-individual {
+    border-radius: 10px;
+    transition: all 0.2s ease-in-out;
+    border-left: 5px solid transparent; /* Base para el color del estado */
+}
+.card-pedido-individual.card-pendiente {
+    border-left-color: var(--rojo) !important;
+}
+.card-pedido-individual:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+.tag-pendiente {
+    background-color: var(--rojo);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+}
+.item-detail {
+    background-color: var(--gris-claro);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px; /* Espacio entre los items */
+}
+.item-detail:last-child {
+    margin-bottom: 0;
+}
+.destino-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 8px;
+    border-radius: 5px;
+}
+.dashed-divider {
+    border-top: 1px dashed #ced4da;
+    opacity: 0.7;
+}
+
+
+.btn-marcar-listo {
+    background-color: var(--verde) !important;
+    border-color: var(--verde) !important;
+    font-weight: 700;
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+.btn-marcar-listo:hover {
+    background-color: #245c24 !important;
+    border-color: #245c24 !important;
+}

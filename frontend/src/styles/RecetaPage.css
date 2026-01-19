@@ -1,0 +1,111 @@
+/* RecetaPage.css */
+
+:root {
+  --verde: #2e7d32;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --crema: #faf7f2;
+  --marron: #4a2b13; /* Café Oscuro */
+  --cafe-claro: #f4eee9; /* Fondo de filtros/headers de tabla */
+  --gris-texto: #6c757d;
+}
+
+/* ---------------------------------- */
+/* BASE Y HEADER CON GRADIENTE */
+/* ---------------------------------- */
+.recetas-page-wrapper {
+    background-color: var(--crema);
+    min-height: 100vh;
+}
+.modulo-header-recetas {
+    /* Gradiente de Rojo a Verde */
+    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 0 0 15px 15px; 
+}
+.page-title-recetas {
+    color: white;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+}
+.page-subtitle-recetas {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1rem;
+}
+
+/* ---------------------------------- */
+/* NAVEGACIÓN Y CONTENIDO DE TABS */
+/* ---------------------------------- */
+.card-tabs-container {
+    padding: 0;
+    margin-top: 20px;
+}
+
+.nav-recetas .nav-link {
+    color: var(--marron);
+    font-weight: 600;
+    padding: 15px 20px;
+    border: none;
+    border-bottom: 3px solid transparent;
+}
+.nav-recetas .nav-link.active {
+    color: var(--marron) !important;
+    background-color: var(--cafe-claro) !important;
+    border-bottom: 3px solid var(--marron) !important;
+}
+
+/* Contenido dentro del Tab */
+.tab-content-inner {
+    padding: 20px;
+    background: white;
+    border-radius: 0 0 10px 10px; /* Redondear solo abajo */
+    border: 1px solid var(--cafe-claro);
+    border-top: none;
+    min-height: 500px;
+}
+.tab-content-inner h4 {
+    color: var(--marron);
+    font-size: 1.2rem;
+}
+
+/* ---------------------------------- */
+/* TABLAS DE INSUMOS Y RECETAS */
+/* ---------------------------------- */
+.table-recetas thead th {
+    background-color: var(--cafe-claro);
+    color: var(--marron);
+    font-weight: 700;
+    border: none;
+}
+.table-recetas tbody tr:nth-child(odd) {
+    background-color: #fdfdfd;
+}
+.table-recetas tbody td {
+    vertical-align: middle;
+}
+
+/* ---------------------------------- */
+/* BOTONES DE ACCIÓN */
+/* ---------------------------------- */
+.btn-primary-green {
+    background-color: var(--verde) !important;
+    border-color: var(--verde) !important;
+    font-weight: 600;
+    border-radius: 8px;
+}
+.btn-warning-yellow {
+    background-color: var(--amarillo) !important;
+    border-color: var(--amarillo) !important;
+    color: var(--marron) !important;
+    font-weight: 600;
+    border-radius: 8px;
+}
+.action-icon {
+    color: var(--marron);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.action-icon.edit:hover { color: var(--verde); }
+.action-icon.delete:hover { color: var(--rojo); }

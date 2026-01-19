@@ -1,0 +1,122 @@
+
+:root {
+  --verde: #2e7d32;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --crema: #faf7f2;
+  --marron: #4a2b13; 
+  --cafe-claro: #f4eee9; 
+  --gris-texto: #6c757d;
+}
+
+.productos-container-modern {
+    background-color: var(--crema);
+    min-height: 100vh;
+}
+.modulo-header-productos {
+    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 0 0 15px 15px; 
+}
+.page-title-productos {
+    color: white;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 5px;
+}
+.page-subtitle-productos {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 1rem;
+}
+
+
+.kpi-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s;
+    border-left: 5px solid !important; /* Usa el color de la clase de Bootstrap */
+    padding: 15px;
+}
+.kpi-card:hover {
+    transform: translateY(-3px);
+}
+.kpi-label {
+    color: var(--gris-texto);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+.kpi-value {
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: var(--marron); /* Default Marrón */
+}
+.kpi-value-verde { color: var(--verde) !important; }
+.kpi-value-rojo { color: var(--rojo) !important; }
+
+
+.filtro-card-modern {
+    background-color: var(--cafe-claro) !important;
+    border-radius: 10px;
+}
+.filtro-card-modern .form-control,
+.filtro-card-modern .form-select {
+    border-radius: 8px;
+}
+.btn-modern {
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 8px 15px;
+    transition: background 0.2s;
+}
+.btn-nuevo {
+    background-color: var(--verde) !important;
+    border-color: var(--verde) !important;
+}
+.btn-buscar {
+    background-color: var(--marron) !important;
+    border-color: var(--marron) !important;
+    color: white;
+}
+.btn-buscar:hover {
+    background-color: #6a4a2b !important;
+    border-color: #6a4a2b !important;
+}
+
+
+.productos-table-list thead th {
+    background-color: var(--cafe-claro);
+    color: var(--marron);
+    font-weight: 700;
+}
+.productos-table-list tbody td {
+    vertical-align: middle;
+    color: var(--gris-texto);
+}
+.productos-table-list .product-thumb {
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+.productos-table-list .fw-bold.text-marron {
+    color: var(--marron);
+}
+
+/* Fila Inactiva (para diferenciar productos deshabilitados) */
+.productos-table-list .table-row-inactive {
+    background-color: #fcfcfc;
+    opacity: 0.7;
+}
+.productos-table-list .table-row-inactive td {
+    font-style: italic;
+}
+
+
+.modal-header-custom {
+    background-color: var(--cafe-claro);
+}
+.modal-header-custom .text-marron {
+    color: var(--marron);
+}

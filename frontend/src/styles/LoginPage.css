@@ -1,0 +1,88 @@
+/* LoginPage.css */
+
+/* Estilos para la pantalla de Login */
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute; /* Posiciona de manera absoluta */
+  top: 50%; /* 50% desde la parte superior */
+  left: 50%; /* 50% desde la parte izquierda */
+  transform: translate(-50%, -50%); /* Centra el contenedor */
+}
+
+/* Logo */
+.logo {
+  height: 6em;
+  width: 6em;
+  object-fit: contain;
+  margin-bottom: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Titulo */
+h1 {
+  color: var(--cafe);
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* Estilo de los campos de entrada */
+.form-control {
+  border-radius: 8px;
+  border: 1px solid var(--gris-claro); 
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.form-control:focus {
+  border-color: var(--rojo); 
+  box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25); 
+}
+
+.input-group-text {
+  background-color: var(--gris-claro);
+  border-radius: 15px 0 0 15px; 
+  color: var(--cafe);
+}
+
+button {
+  background-color: var(--rojo);
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 0.75rem;
+  width: 100%;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: var(--amarillo);
+  color: var(--cafe);
+}
+
+small {
+  display: block;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+small a {
+  color: var(--rojo);
+  text-decoration: none;
+}
+
+small a:hover {
+  color: var(--amarillo);
+}

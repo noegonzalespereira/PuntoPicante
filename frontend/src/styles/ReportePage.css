@@ -1,0 +1,196 @@
+/* ===========================
+   ReportePage.css
+   =========================== */
+
+:root{
+  --marron: #6b3e2e;
+  --marron-700: #5a3326;
+  --marron-300: #a87967;
+  --beige-25: #fff9f1;
+  --beige-50: #fff4e3;
+  --beige-100:#f7efe7;
+  --verde: #198754;      /* Bootstrap success */
+  --rojo:  #dc3545;      /* Bootstrap danger  */
+  --amarillo:#ffc107;    /* Bootstrap warning */
+  --gris-700:#4b5563;
+  --gris-500:#6b7280;
+  --gris-200:#e5e7eb;
+  --shadow: 0 10px 22px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.05);
+}
+
+/* ====== Header con degradé (similar al Dashboard) ====== */
+.modulo-header-reportes{
+  background: linear-gradient(120deg, var(--beige-50) 0%, #ffffff 55%);
+  border-bottom: 1px solid var(--beige-100);
+  padding: 24px 0;
+}
+.modulo-header-reportes .header-content{
+  display:flex; align-items:flex-start; gap:12px;
+}
+.page-title{
+  margin:0; font-weight:800; color: var(--marron);
+  letter-spacing:.2px;
+}
+.page-subtitle{
+  margin:4px 0 0; color:#8b8b8b; font-weight:600;
+}
+
+/* ====== Filtros ====== */
+.filtro-card{
+  border:0; box-shadow: var(--shadow);
+}
+.form-control-custom{
+  border-radius:.75rem;
+}
+.filtro-label{
+  font-weight:700; color: var(--gris-700);
+}
+.fecha-label{ color: var(--gris-500); font-weight:600; }
+.fecha-valor{ color: var(--marron); font-weight:800; }
+
+/* ====== Botón principal (Exportar / Actualizar) ====== */
+.btn-export{
+  background:#0d6efd; border-color:#0d6efd;
+  padding:.6rem 1rem; border-radius:.75rem; font-weight:700;
+}
+.btn-export:hover{ filter:brightness(.95); }
+
+/* ====== KPIs ====== */
+.kpi-card{
+  border:0; box-shadow: var(--shadow);
+  border-radius:1rem; position:relative; overflow:hidden;
+  min-height: 132px;
+}
+.kpi-card .kpi-icon{
+  position:absolute; right:14px; top:14px; opacity:.15;
+}
+.kpi-label{
+  display:block; font-weight:700; color:#7a7a7a; letter-spacing:.4px;
+}
+.kpi-value{
+  font-weight:900; font-size:1.8rem; margin-top:.35rem;
+}
+.kpi-amarillo{ background: #fff8e1; }
+.kpi-verde   { background: #ebf9f1; }
+.kpi-marron  { background: #f8efe9; }
+.kpi-rojo    { background: #fdecec; }
+.kpi-value-verde{ color: var(--verde); }
+.kpi-value-marron{ color: var(--marron); }
+.kpi-value-rojo{ color: var(--rojo); }
+
+/* ====== Tabs ====== */
+.tabs-card{
+  border:0; box-shadow: var(--shadow); border-radius:1rem; overflow:hidden;
+}
+.custom-tabs .nav-link{
+  font-weight:700; color: var(--gris-500);
+}
+.custom-tabs .nav-link.active{
+  color: var(--marron);
+  border-color: var(--marron) var(--marron) #fff;
+  background: #fff;
+}
+.tab-content-body{ background:#fff; }
+
+/* ====== Secciones ====== */
+.report-section{ margin-bottom:1.75rem; }
+.section-header{
+  display:flex; align-items:center; gap:.5rem; margin-bottom:.8rem;
+}
+.section-icon{ color: var(--marron); }
+.section-title{ margin:0; font-weight:800; color: var(--marron); }
+.section-title-large{
+  margin:0 0 .75rem 0; font-weight:900; color: var(--marron);
+}
+
+/* ====== Cards Modernos ====== */
+.modern-card{
+  border:0; box-shadow: var(--shadow); border-radius:1rem;
+}
+
+/* --- Pagos Recibidos --- */
+.card-ingresos .ingreso-item{
+  display:flex; align-items:center; gap:12px; padding:14px 16px;
+  border-bottom:1px dashed var(--beige-100);
+  background:#fff;
+}
+.card-ingresos .ingreso-icon{
+  width:40px; height:40px; border-radius:.8rem; display:grid; place-items:center;
+  background: var(--beige-50); color: var(--marron);
+}
+.card-ingresos .ingreso-info{ display:flex; justify-content:space-between; width:100%; }
+.ingreso-label{ font-weight:700; color: var(--gris-700); }
+.ingreso-monto{ font-weight:900; color: var(--marron); }
+.ingreso-total{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px; background: var(--amarillo); color:#2b2b2b; font-weight:900;
+  border-radius:0 0 1rem 1rem;
+}
+.total-label{ letter-spacing:.4px; }
+.total-monto{ font-size:1.4rem; }
+
+/* --- Control de Caja --- */
+.card-control .control-grid{ margin-bottom:12px; }
+.control-item{ text-align:center; }
+.control-label{ display:block; color: var(--gris-500); font-weight:700; }
+.control-value{ display:block; font-weight:900; color: var(--marron); font-size:1.2rem; }
+.border-marron{ border-color: #ead9cf !important; }
+.control-diferencia{
+  margin-top:10px; display:flex; justify-content:space-between; align-items:center;
+  padding:10px 12px; background: var(--beige-25); border-radius:.8rem; border:1px solid var(--beige-100);
+}
+.diferencia-label{ font-weight:800; color: var(--gris-700); }
+.diferencia-value{ font-weight:800; color: var(--marron); }
+
+/* ====== Tab Operacional ====== */
+.stat-grid{
+  display:grid; grid-template-columns: repeat(3, 1fr); gap:14px;
+}
+.stat-item{
+  background:#fff; border-radius:.9rem; box-shadow: var(--shadow);
+  padding:16px; text-align:center;
+}
+.stat-value{ font-weight:900; font-size:1.6rem; color: var(--marron); }
+.stat-label{ color: var(--gris-500); font-weight:700; }
+
+/* ====== Tablas ====== */
+.gastos-table thead th,
+.info-table thead th,
+.rentabilidad-table thead th{
+  background: var(--beige-100); color: var(--marron); border:0; font-weight:800;
+}
+.gastos-table tbody td,
+.info-table tbody td,
+.rentabilidad-table tbody td{
+  vertical-align: middle;
+}
+.total-gastos td{
+  background: #fff8e1; font-weight:900; color:#2b2b2b;
+}
+.rentabilidad-table tbody td.text-success{ color: var(--verde) !important; }
+
+/* ====== Ganancia total (banda verde) ====== */
+.ganancia-total{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 16px; background:#e8f7ee; border-radius:0 0 1rem 1rem;
+  border-top:1px solid #d7efdf;
+}
+.ganancia-label{ font-weight:900; color:#246a48; letter-spacing:.5px; }
+.ganancia-value{ font-weight:900; color:#246a48; font-size:1.4rem; }
+
+/* ====== Utilidades de color ====== */
+.text-marron{ color: var(--marron) !important; }
+.text-ganancia{ color: var(--verde) !important; }
+.text-perdida{ color: var(--rojo) !important; }
+.text-rojo{ color: var(--rojo) !important; }
+.text-verde{ color: var(--verde) !important; }
+.bg-verde{ background:#e8f7ee !important; color:#1e6b4a; }
+
+/* ====== Responsive tweaks ====== */
+@media (max-width: 992px){
+  .kpi-card .kpi-icon{ display:none; }
+}
+@media (max-width: 576px){
+  .stat-grid{ grid-template-columns: 1fr; }
+  .ingreso-total{ flex-direction:column; gap:6px; align-items:flex-start; }
+}
