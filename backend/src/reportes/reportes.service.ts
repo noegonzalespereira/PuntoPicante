@@ -15,6 +15,7 @@ import { Producto, TipoProducto } from '../productos/producto.entity';
 
 import { InventarioMovimiento, TipoMovimiento } from '../inventario/inventario-mov.entity';
 import { InventarioProducto } from '../inventario/inventario-producto.entity';
+import { ReportRangeDto } from './dto/report-range.dto';
 
 type RangoFechasCaja = { desde?: string; hasta?: string; caja?: number };
 type RangoFechas = { desde?: string; hasta?: string };
@@ -148,6 +149,139 @@ export class ReportesService {
       periodo: { desde: q.desde ?? null, hasta: q.hasta ?? null },
       total_mermas,
       detalle,
+    };
+  }
+
+  // ====================================================================
+  //  RESUMEN GERENCIAL (todo agregado en SQL, sin tope de pedidos)
+  // ====================================================================
+
+  /** Convierte el rango YYYY-MM-DD en fechas usables; "hasta" se extiende a fin del día. */
+  private rango(desde?: string, hasta?: string): { ini: Date; fin: Date } {
+    const ini = this.parseDateMaybe(desde) ?? new Date(0);
+    let fin = this.parseDateMaybe(hasta);
+    if (fin) {
+      if (fin.getHours() === 0 && fin.getMinutes() === 0) fin.setHours(23, 59, 59, 999);
+    } else {
+      fin = new Date();
+    }
+    return { ini, fin };
+  }
+
+  /**
+   * Reporte consolidado del período. Toda la cuenta se hace en la base de datos:
+   * no traemos los pedidos al servidor ni dependemos del límite de paginación.
+   */
+  async resumen(q: ReportRangeDto) {
+    const { ini, fin } = this.rango(q.desde, q.hasta);
+    const caja = q.caja;
+
+    // 1) Productos vendidos: unidades y Bs por producto (todas las órdenes del rango)
+    const qProd = this.detRepo
+      .createQueryBuilder('d')
+      .innerJoin('d.pedido', 'p')
+      .innerJoin('d.producto', 'pr')
+      .select('pr.id_producto', 'id_producto')
+      .addSelect('pr.nombre', 'nombre')
+      .addSelect('pr.tipo', 'tipo')
+      .addSelect('SUM(d.cantidad)', 'unidades')
+      .addSelect('SUM(d.subtotal)', 'ventas')
+      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+    if (caja) qProd.andWhere('p.id_caja = :caja', { caja });
+    qProd
+      .groupBy('pr.id_producto')
+      .addGroupBy('pr.nombre')
+      .addGroupBy('pr.tipo')
+      .orderBy('SUM(d.cantidad)', 'DESC');
+    const productosRaw = await qProd.getRawMany();
+    const productos = productosRaw.map((r) => ({
+      id_producto: Number(r.id_producto),
+      nombre: r.nombre,
+      tipo: r.tipo,
+      unidades: Number(r.unidades ?? 0),
+      ventas: Number(r.ventas ?? 0),
+    }));
+
+    // 2) Unidades por destino (un pedido MIXTO aporta a MESA y a LLEVAR según cada ítem)
+    const qDest = this.detRepo
+      .createQueryBuilder('d')
+      .innerJoin('d.pedido', 'p')
+      .select('d.destino', 'destino')
+      .addSelect('SUM(d.cantidad)', 'unidades')
+      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+    if (caja) qDest.andWhere('p.id_caja = :caja', { caja });
+    qDest.groupBy('d.destino');
+    const destRaw = await qDest.getRawMany();
+    const items_por_destino = { mesa: 0, llevar: 0 };
+    for (const r of destRaw) {
+      if (r.destino === 'MESA') items_por_destino.mesa = Number(r.unidades ?? 0);
+      else if (r.destino === 'LLEVAR') items_por_destino.llevar = Number(r.unidades ?? 0);
+    }
+
+    // 3) Pedidos por tipo (MESA / LLEVAR / MIXTO) — conteo de pedidos
+    const qTipo = this.pedRepo
+      .createQueryBuilder('p')
+      .select('p.tipo_pedido', 'tipo')
+      .addSelect('COUNT(1)', 'cantidad')
+      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+    if (caja) qTipo.andWhere('p.id_caja = :caja', { caja });
+    qTipo.groupBy('p.tipo_pedido');
+    const tipoRaw = await qTipo.getRawMany();
+    const pedidos_por_tipo = { MESA: 0, LLEVAR: 0, MIXTO: 0 };
+    for (const r of tipoRaw) {
+      if (r.tipo === 'MESA') pedidos_por_tipo.MESA = Number(r.cantidad ?? 0);
+      else if (r.tipo === 'LLEVAR') pedidos_por_tipo.LLEVAR = Number(r.cantidad ?? 0);
+      else if (r.tipo === 'MIXTO') pedidos_por_tipo.MIXTO = Number(r.cantidad ?? 0);
+    }
+
+    // 4) Métodos de pago: monto y nº de pedidos (solo PAGADOS)
+    const qPago = this.pedRepo
+      .createQueryBuilder('p')
+      .select('p.metodo_pago', 'metodo')
+      .addSelect('SUM(p.total)', 'monto')
+      .addSelect('COUNT(1)', 'pedidos')
+      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
+      .andWhere('p.estado_pago::text = :pg', { pg: 'PAGADO' });
+    if (caja) qPago.andWhere('p.id_caja = :caja', { caja });
+    qPago.groupBy('p.metodo_pago');
+    const pagoRaw = await qPago.getRawMany();
+    const metodos_pago = {
+      efectivo: { monto: 0, pedidos: 0 },
+      qr: { monto: 0, pedidos: 0 },
+    };
+    for (const r of pagoRaw) {
+      const m = String(r.metodo ?? '').toUpperCase();
+      if (m === 'EFECTIVO') metodos_pago.efectivo = { monto: Number(r.monto ?? 0), pedidos: Number(r.pedidos ?? 0) };
+      else if (m === 'QR') metodos_pago.qr = { monto: Number(r.monto ?? 0), pedidos: Number(r.pedidos ?? 0) };
+    }
+
+    // 5) Pedidos despachados (estado del pedido = LISTO)
+    const qDesp = this.pedRepo
+      .createQueryBuilder('p')
+      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
+      .andWhere('p.estado_pedido::text = :lst', { lst: 'LISTO' });
+    if (caja) qDesp.andWhere('p.id_caja = :caja', { caja });
+    const pedidos_despachados = await qDesp.getCount();
+
+    // 6) Totales derivados
+    const venta_total = metodos_pago.efectivo.monto + metodos_pago.qr.monto;
+    const pedidos_pagados = metodos_pago.efectivo.pedidos + metodos_pago.qr.pedidos;
+    const unidades_total = productos.reduce((acc, x) => acc + x.unidades, 0);
+    const pedidos_total = pedidos_por_tipo.MESA + pedidos_por_tipo.LLEVAR + pedidos_por_tipo.MIXTO;
+
+    return {
+      periodo: { desde: q.desde ?? null, hasta: q.hasta ?? null },
+      totales: {
+        venta_total: Number(venta_total.toFixed(2)),
+        pedidos_pagados,
+        pedidos_despachados,
+        pedidos_total,
+        unidades_total,
+      },
+      metodos_pago,
+      pedidos_por_tipo,
+      items_por_destino,
+      productos,
     };
   }
 }

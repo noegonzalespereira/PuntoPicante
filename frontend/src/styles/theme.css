@@ -1,0 +1,144 @@
+/* ============================================================
+   theme.css — Estilos GLOBALES del sistema (un solo lugar)
+   Se importa una sola vez en main.jsx.
+   Aquí viven los "design tokens" (colores) y las reglas
+   responsivas base que aplican a toda la app.
+   ============================================================ */
+
+/* ---------- Tokens de color (paleta El Punto Picante) ---------- */
+:root {
+  --verde: #2e7d32;
+  --verde-hover: #245c24;
+  --amarillo: #ffca28;
+  --rojo: #b71c1c;
+  --rojo-hover: #9f1a1a;
+  --crema: #faf7f2;
+  --marron: #4a2b13;
+  --cafe: #4a2b13;
+  --cafe-claro: #f4eee9;
+  --gris-texto: #6c757d;
+  --gris-claro: #ced4da;
+  --gris-700: #495057;
+
+  /* Espaciados y radios reutilizables */
+  --radio: 12px;
+  --sombra: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- Helpers de color (clases utilitarias) ---------- */
+.text-marron { color: var(--marron) !important; }
+.text-verde  { color: var(--verde)  !important; }
+.text-rojo   { color: var(--rojo)   !important; }
+
+/* ============================================================
+   COMPONENTE PageHeader (molécula reutilizable)
+   ============================================================ */
+.app-page-header {
+  background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
+  color: #fff;
+  padding: 22px 28px;
+  border-radius: 0 0 15px 15px;
+  margin-bottom: 1.5rem;
+}
+.app-page-header__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.app-page-header__title {
+  color: #fff;
+  font-weight: 800;
+  font-size: 2rem;
+  margin: 0;
+}
+.app-page-header__subtitle {
+  color: rgba(255, 255, 255, 0.85);
+  margin: 4px 0 0;
+}
+
+/* ============================================================
+   RESPONSIVIDAD GLOBAL
+   ============================================================ */
+
+/* En móvil, reducir el tamaño de los títulos de cabecera de cada módulo
+   (todas las páginas usan clases tipo .page-title-*) */
+@media (max-width: 768px) {
+  [class*="page-title"] {
+    font-size: 1.5rem !important;
+  }
+  [class*="page-subtitle"] {
+    font-size: 0.9rem !important;
+  }
+  [class*="modulo-header"] {
+    padding: 16px 18px !important;
+  }
+}
+
+/* Contenedores con menos padding lateral en móvil para aprovechar el ancho */
+@media (max-width: 576px) {
+  .container, .container-fluid {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* Botones con área táctil cómoda en móvil (mínimo recomendado ~40px) */
+@media (max-width: 576px) {
+  .btn:not(.btn-sm) {
+    min-height: 42px;
+  }
+}
+
+/* ============================================================
+   TABLA RESPONSIVA -> TARJETAS EN MÓVIL
+   Uso: <Table className="tabla-responsive-cards"> y en cada <td>
+   poner data-label="Etiqueta". En pantallas chicas cada fila se
+   muestra como una tarjeta apilada con su etiqueta a la izquierda.
+   ============================================================ */
+@media (max-width: 768px) {
+  .tabla-responsive-cards thead {
+    display: none; /* ocultamos la cabecera; cada celda lleva su etiqueta */
+  }
+
+  .tabla-responsive-cards tbody tr {
+    display: block;
+    margin-bottom: 0.85rem;
+    border: 1px solid #e7e0d8;
+    border-radius: var(--radio);
+    padding: 0.5rem 0.85rem;
+    background: #fff;
+    box-shadow: var(--sombra);
+  }
+
+  .tabla-responsive-cards tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    border: none !important;
+    padding: 0.4rem 0;
+    text-align: right;
+  }
+
+  /* La etiqueta de cada dato (viene del atributo data-label) */
+  .tabla-responsive-cards tbody td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--marron);
+    text-align: left;
+    margin-right: auto;
+  }
+
+  /* La celda de acciones: botones alineados a la derecha, con aire */
+  .tabla-responsive-cards tbody td.celda-acciones {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding-top: 0.6rem;
+  }
+  .tabla-responsive-cards tbody td.celda-acciones::before {
+    align-self: center;
+  }
+}

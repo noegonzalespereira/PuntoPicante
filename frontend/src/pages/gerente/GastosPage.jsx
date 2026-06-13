@@ -3,7 +3,8 @@ import { Container, Row, Col, Card, Button, InputGroup, FormControl, Table, Form
 import Swal from "sweetalert2";
 import { gastoService } from "../../services/gastosService";
 import { BsCalendar, BsFunnel, BsSearch, BsXCircle, BsPlusLg, BsCashCoin, BsClipboardData, BsReceipt, BsListNested,BsPencilSquare, BsFillTrashFill } from "react-icons/bs";
-import "../../styles/GastosPage.css"; 
+import "../../styles/GastosPage.css";
+import PageHeader from "../../components/molecules/PageHeader";
 export default function GastosPage() {
     const [gastos, setGastos] = useState([]);
     const [resumen, setResumen] = useState({ total_gastos: "0.00", num_gastos: 0 });
@@ -188,12 +189,7 @@ async function eliminarGasto(g) {
     return (
         <Container fluid className="py-0 gastos-page">
             
-            <div className="modulo-header-gastos mb-4">
-                <div className="header-content">
-                    <h1 className="page-title-gastos">Gestión de Gastos</h1>
-                    <p className="page-subtitle-gastos">Registro y consulta de egresos del negocio</p>
-                </div>
-            </div>
+            <PageHeader title="Gestión de Gastos" subtitle="Registro y consulta de egresos del negocio" />
 
             <Row className="mb-4 px-3 g-3">
                 
@@ -276,7 +272,7 @@ async function eliminarGasto(g) {
                         </p>
                     ) : (
                         <div className="table-responsive">
-                            <Table responsive hover className="align-middle gastos-table-modern">
+                            <Table responsive hover className="align-middle gastos-table-modern tabla-responsive-cards">
                                 <thead>
                                     <tr>
                                         <th>Fecha</th>
@@ -291,17 +287,17 @@ async function eliminarGasto(g) {
                                 <tbody>
                                     {gastos.map((g) => (
                                         <tr key={g.id_gasto}>
-                                            <td>{formatDate(g.fecha)}</td>
-                                            <td className="fw-bold">{g.nombre_producto}</td>
-                                            <td>{g.descripcion || "-"}</td>
-                                            <td className="text-end">{g.cantidad}</td>
-                                            <td className="text-end text-rojo">
+                                            <td data-label="Fecha">{formatDate(g.fecha)}</td>
+                                            <td data-label="Nombre" className="fw-bold">{g.nombre_producto}</td>
+                                            <td data-label="Descripción">{g.descripcion || "-"}</td>
+                                            <td data-label="Cantidad" className="text-end">{g.cantidad}</td>
+                                            <td data-label="P. Unitario" className="text-end text-rojo">
                                                 Bs {Number(g.precio).toFixed(2)}
                                             </td>
-                                            <td className="text-end text-rojo fw-bold">
+                                            <td data-label="Total" className="text-end text-rojo fw-bold">
                                                 Bs {(g.cantidad * Number(g.precio)).toFixed(2)}
                                             </td>
-                                            <td className="text-center">
+                                            <td data-label="Acciones" className="text-center celda-acciones">
                                                 <div className="d-flex justify-content-center gap-2">
                                                 <Button
                                                     variant="outline-primary"

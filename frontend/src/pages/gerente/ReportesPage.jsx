@@ -8,12 +8,13 @@ import {
 } from "react-icons/bs";
 
 import jsPDF from "jspdf";
-import { pedidoService } from "../../services/pedidosService";
+import { reportesService } from "../../services/reportesService";
 import { gastoService } from "../../services/gastosService";
 import { cajaService } from "../../services/cajaService";
 import { stockService } from "../../services/stockService";
 import logoPuntoPicante from "../../assets/logo.jpg";
 import "../../styles/ReportePage.css";
+import PageHeader from "../../components/molecules/PageHeader";
 
 
 const TZ = "America/La_Paz";
@@ -148,9 +149,11 @@ const rango = useMemo(() => {
     comer: 0,
     llevar: 0,
     mixtos: 0,
+    platosMesa: 0,
+    platosLlevar: 0,
     mermasUnidades: 0,
     mermasCosto: 0,
-    vendidosDetalle: [] 
+    vendidosDetalle: []
   });
 
   
@@ -170,16 +173,8 @@ const rango = useMemo(() => {
     
 
     try {
-      // 1) Pedidos
-      const [pedidosPagados, pedidosListos, pedidosTodos] = await Promise.all([
-        pedidoService.getAll({ desde, hasta, estado_pago: "PAGADO" }),
-        pedidoService.getAll({ desde, hasta, estado_pedido: "LISTO" }),
-        pedidoService.getAll({ desde, hasta }) 
-      ]);
-
-      console.log("PAGADOS", pedidosPagados);
-      console.log("LISTOS", pedidosListos);
-      console.log("TODOS", pedidosTodos);
+      // 1) Resumen de ventas: TODO agregado en el backend (sin tope de 100 pedidos).
+      const resumen = await reportesService.getResumen({ desde, hasta });
 
       // 2) Gastos (detalle + resumen)
       const [gResumen, gListado] = await Promise.all([
@@ -222,44 +217,29 @@ const rango = useMemo(() => {
       } catch {
       }
 
-      let ventaTotal = 0,
-        efectivo = 0,
-        qr = 0;
-      const vendidosMap = new Map(); // nombre -> cantidad
-      let comer = 0,
-        llevar = 0,
-        mixtos = 0;
+      // Todos estos valores ya vienen calculados (en SQL) desde /reportes/resumen.
+      const ventaTotal = Number(resumen?.totales?.venta_total ?? 0);
+      const efectivo = Number(resumen?.metodos_pago?.efectivo?.monto ?? 0);
+      const qr = Number(resumen?.metodos_pago?.qr?.monto ?? 0);
 
-      pedidosPagados.forEach(p => {
-        const total = Number(p.total || 0);
-        ventaTotal += total;
+      // Conteo de pedidos por tipo (MESA = "para comer")
+      const comer = Number(resumen?.pedidos_por_tipo?.MESA ?? 0);
+      const llevar = Number(resumen?.pedidos_por_tipo?.LLEVAR ?? 0);
+      const mixtos = Number(resumen?.pedidos_por_tipo?.MIXTO ?? 0);
 
-        const mp = (p.metodo_pago || "").toUpperCase();
-        if (mp.includes("EFECT")) efectivo += total;
-        else if (mp.includes("QR") || mp.includes("TRANS")) qr += total;
+      // Cantidad de PLATOS (ítems) por destino: un pedido mixto reparte sus ítems
+      const platosMesa = Number(resumen?.items_por_destino?.mesa ?? 0);
+      const platosLlevar = Number(resumen?.items_por_destino?.llevar ?? 0);
 
-        const tipo = (p.tipo_pedido || p.destino || "").toUpperCase();
-        if (tipo.includes("COMER") || tipo.includes("MESA")) comer++;
-        else if (tipo.includes("LLEVAR") || tipo.includes("DELIVERY")) llevar++;
-        else if (tipo.includes("MIX")) mixtos++;
+      // Productos vendidos: unidades y Bs por producto, ya ordenados
+      const vendidosDetalle = (resumen?.productos ?? []).map(p => ({
+        nombre: p.nombre,
+        cantidad: Number(p.unidades ?? 0),
+        ventas: Number(p.ventas ?? 0),
+        tipo: p.tipo,
+      }));
 
-        (p.items || []).forEach(it => {
-          const nombre =
-            it?.producto?.nombre || it?.nombre || "(producto)";
-          const cant = Number(it?.cantidad || 0);
-          if (!cant) return;
-          vendidosMap.set(
-            nombre,
-            (vendidosMap.get(nombre) || 0) + cant
-          );
-        });
-      });
-
-      const vendidosDetalle = Array.from(vendidosMap.entries())
-        .map(([nombre, cantidad]) => ({ nombre, cantidad }))
-        .sort((a, b) => b.cantidad - a.cantidad);
-
-      const pedidosDespachados = pedidosListos.length;
+      const pedidosDespachados = Number(resumen?.totales?.pedidos_despachados ?? 0);
 
       // Caja compactada para mostrar en la tarjeta
       const cajaView = {
@@ -286,6 +266,8 @@ const rango = useMemo(() => {
         comer,
         llevar,
         mixtos,
+        platosMesa,
+        platosLlevar,
         mermasUnidades,
         mermasCosto,
         vendidosDetalle
@@ -852,6 +834,7 @@ const rango = useMemo(() => {
             <h5 className="section-title">Desglose Operacional</h5>
           </div>
           <Card className="modern-card p-4">
+            <h6 className="text-muted mb-2">Pedidos por tipo</h6>
             <div className="stat-grid">
               <div className="stat-item">
                 <span className="stat-value">
@@ -870,6 +853,18 @@ const rango = useMemo(() => {
                   {inventario.mixtos}
                 </span>
                 <span className="stat-label">Mixtos</span>
+              </div>
+            </div>
+            <hr />
+            <h6 className="text-muted mb-2">Platos por destino (unidades)</h6>
+            <div className="stat-grid">
+              <div className="stat-item">
+                <span className="stat-value">{inventario.platosMesa}</span>
+                <span className="stat-label">A Mesa</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{inventario.platosLlevar}</span>
+                <span className="stat-label">Para Llevar</span>
               </div>
             </div>
           </Card>
@@ -891,6 +886,7 @@ const rango = useMemo(() => {
                   <tr>
                     <th>Producto</th>
                     <th className="text-end">Cantidad</th>
+                    <th className="text-end">Ventas (Bs)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -899,6 +895,9 @@ const rango = useMemo(() => {
                       <td>{p.nombre}</td>
                       <td className="text-end">
                         {p.cantidad}x
+                      </td>
+                      <td className="text-end">
+                        {Number(p.ventas ?? 0).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -943,14 +942,7 @@ const rango = useMemo(() => {
   return (
     <div className="reportes-page">
       {/* Header con degradé */}
-      <div className="modulo-header-reportes mb-4">
-        <div className="header-content container-fluid px-3">
-          <h1 className="page-title">Reportes Gerenciales</h1>
-          <p className="page-subtitle">
-            Análisis financiero y operacional
-          </p>
-        </div>
-      </div>
+      <PageHeader title="Reportes Gerenciales" subtitle="Análisis financiero y operacional" />
       <div ref={reportRef}>
       <Container fluid>
         {/* Filtros */}

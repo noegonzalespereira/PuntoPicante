@@ -1,4 +1,10 @@
 /* LoginPage.css */
+/*
+  IMPORTANTE: todas las reglas van prefijadas con .login-container.
+  Antes había selectores globales (button, h1, .form-control, small) sin prefijo
+  que, al juntarse todo el CSS en un solo bundle, se filtraban a TODA la app
+  (por ejemplo: button { width: 100% } agrandaba los botones de todas las tablas).
+*/
 
 /* Estilos para la pantalla de Login */
 .login-container {
@@ -19,7 +25,7 @@
 }
 
 /* Logo */
-.logo {
+.login-container .logo {
   height: 6em;
   width: 6em;
   object-fit: contain;
@@ -30,7 +36,7 @@
 }
 
 /* Titulo */
-h1 {
+.login-container h1 {
   color: var(--cafe);
   font-size: 2rem;
   text-align: center;
@@ -38,25 +44,26 @@ h1 {
 }
 
 /* Estilo de los campos de entrada */
-.form-control {
+.login-container .form-control {
   border-radius: 8px;
-  border: 1px solid var(--gris-claro); 
+  border: 1px solid var(--gris-claro);
   padding: 0.75rem;
   margin-bottom: 1rem;
 }
 
-.form-control:focus {
-  border-color: var(--rojo); 
-  box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25); 
+.login-container .form-control:focus {
+  border-color: var(--rojo);
+  box-shadow: 0 0 0 0.2rem rgba(183, 28, 28, 0.25);
 }
 
-.input-group-text {
+.login-container .input-group-text {
   background-color: var(--gris-claro);
-  border-radius: 15px 0 0 15px; 
+  border-radius: 15px 0 0 15px;
   color: var(--cafe);
 }
 
-button {
+/* El botón a ancho completo SOLO dentro del login */
+.login-container button {
   background-color: var(--rojo);
   color: white;
   font-weight: bold;
@@ -67,22 +74,22 @@ button {
   transition: background-color 0.3s;
 }
 
-button:hover {
+.login-container button:hover {
   background-color: var(--amarillo);
   color: var(--cafe);
 }
 
-small {
+.login-container small {
   display: block;
   margin-top: 1rem;
   text-align: center;
 }
 
-small a {
+.login-container small a {
   color: var(--rojo);
   text-decoration: none;
 }
 
-small a:hover {
+.login-container small a:hover {
   color: var(--amarillo);
 }

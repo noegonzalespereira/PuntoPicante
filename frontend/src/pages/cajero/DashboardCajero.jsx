@@ -1,16 +1,13 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { BsCartCheck, BsCashStack } from "react-icons/bs";
+import PageHeader from "../../components/molecules/PageHeader";
 
 export default function DashboardCajero() {
   return (
-    <Container fluid className="p-3">
-      <Row className="mb-3">
-        <Col>
-          <h3 className="mb-0">Dashboard de Cajero</h3>
-          <small className="text-muted">Operaciones del día</small>
-        </Col>
-      </Row>
+    <>
+      <PageHeader title="Dashboard de Cajero" subtitle="Operaciones del día" />
+      <Container fluid className="p-3">
 
       <Row className="g-3">
         <Col md={6}>
@@ -52,5 +49,6 @@ export default function DashboardCajero() {
         </Col>
       </Row>
     </Container>
+    </>
   );
 }

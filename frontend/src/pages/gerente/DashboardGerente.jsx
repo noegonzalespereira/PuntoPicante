@@ -10,6 +10,7 @@ import { gastoService } from '../../services/gastosService';
 import { cocinaService } from '../../services/cocinaService'; // 👈 AÑADIDO
 
 import '../../styles/DashboardPage.css';
+import PageHeader from "../../components/molecules/PageHeader";
 
 import {
   BsBoxSeam,
@@ -248,7 +249,7 @@ try {
   const renderStockTable = () => {
     const platos = stats.stockDetalle?.platos || [];
     return (
-      <Table responsive hover size="sm" className="tabla-stock-dashboard">
+      <Table responsive hover size="sm" className="tabla-stock-dashboard tabla-responsive-cards">
         <thead>
           <tr>
             <th>Plato</th>
@@ -260,14 +261,14 @@ try {
         <tbody>
           {platos.length > 0 ? (
             platos.map((p) => {
-              const stockDia = (p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0);
+              const stockDia = p.stock_inicial ?? ((p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0));
               const disponible = p.stock ?? 0;
               return (
                 <tr key={p.id_producto}>
-                  <td className="fw-bold">{p.nombre}</td>
-                  <td className="text-center text-marron">{stockDia}</td>
-                  <td className="text-center text-primary">{p.vendido ?? 0}</td>
-                  <td className="text-center fw-bold">{disponible}</td>
+                  <td data-label="Plato" className="fw-bold">{p.nombre}</td>
+                  <td data-label="Stock Día" className="text-center text-marron">{stockDia}</td>
+                  <td data-label="Vendidos" className="text-center text-primary">{p.vendido ?? 0}</td>
+                  <td data-label="Disponible" className="text-center fw-bold">{disponible}</td>
                 </tr>
               );
             })
@@ -294,14 +295,10 @@ try {
   return (
     <div className="dashboard-page">
       {/* HEADER */}
-      <div className="modulo-header-dashboard mb-4">
-        <div className="header-content container-fluid px-3">
-          <h1 className="page-title-dashboard">Dashboard Gerencial</h1>
-          <p className="page-subtitle-dashboard">
-            Métricas del día de trabajo ({formatFechaVisual(stats.fechaRef)})
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard Gerencial"
+        subtitle={`Métricas del día de trabajo (${formatFechaVisual(stats.fechaRef)})`}
+      />
 
       <Container fluid className="px-3">
         <Row className="g-4 mb-5">

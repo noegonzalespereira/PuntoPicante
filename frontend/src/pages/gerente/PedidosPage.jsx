@@ -11,6 +11,10 @@ import "../../styles/PedidosPage.css";
 import {
   BsPlusCircle, BsListCheck
 } from "react-icons/bs";
+import PageHeader from "../../components/molecules/PageHeader";
+import IconButton from "../../components/atoms/IconButton";
+import EstadoBadge from "../../components/atoms/EstadoBadge";
+import Money from "../../components/atoms/Money";
 function asArray(resp) {
   if (Array.isArray(resp)) return resp;
   if (resp?.data && Array.isArray(resp.data)) return resp.data;
@@ -653,18 +657,14 @@ export default function PedidosPage() {
   return (
     <Container fluid className="py-0 pedidos-page">
       {/* HEADER */}
-      <div className="modulo-header-pedidos mb-4">
-        <div className="header-content">
-          <h1 className="page-title-pedidos">Gestión de Pedidos</h1>
-          <p className="page-subtitle-pedidos">Toma de órdenes y gestión de ventas</p>
-          {cajaAbierta && (
-            <Badge bg="success" className="fs-6 px-3 py-2 header-badge-caja">
-              <i className="bi bi-cash-stack me-1" />
-              Caja: ABIERTA
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PageHeader title="Gestión de Pedidos" subtitle="Toma de órdenes y gestión de ventas">
+        {cajaAbierta && (
+          <Badge bg="light" text="dark" className="fs-6 px-3 py-2">
+            <i className="bi bi-cash-stack me-1" />
+            Caja: ABIERTA
+          </Badge>
+        )}
+      </PageHeader>
 
       {/* TABS */}
       <div className="d-flex gap-2 border-bottom mb-3 flex-wrap px-3">
@@ -1043,7 +1043,7 @@ export default function PedidosPage() {
               </p>
             ) : (
               <div className="table-responsive">
-                <Table responsive hover className="align-middle table-pedidos-listado">
+                <Table responsive hover className="align-middle table-pedidos-listado tabla-responsive-cards">
                   <thead>
                     <tr>
                       <th>#</th>
@@ -1059,50 +1059,41 @@ export default function PedidosPage() {
                   <tbody>
                     {pedidos.map((p) => (
                       <tr key={p.id_pedido}>
-                        <td className="fw-bold">{p.num_pedido}</td>
-                        <td>{p.tipo_pedido}</td>
-                        <td>{p.num_mesa ?? "-"}</td>
-                        <td className="fw-bold">{Number(p.total).toFixed(2)} Bs</td>
-                        <td>
-                          <Badge
-                            bg={p.estado_pedido === "PENDIENTE" ? "warning" : "success"}
-                          >
-                            {p.estado_pedido}
-                          </Badge>
+                        <td data-label="#" className="fw-bold">{p.num_pedido}</td>
+                        <td data-label="Tipo">{p.tipo_pedido}</td>
+                        <td data-label="Mesa">{p.num_mesa ?? "-"}</td>
+                        <td data-label="Total" className="fw-bold"><Money value={p.total} /></td>
+                        <td data-label="Estado Pedido">
+                          <EstadoBadge estado={p.estado_pedido} />
                         </td>
-                        <td>
-                          <Badge bg={p.estado_pago === "PAGADO" ? "success" : "danger"}>
-                            {p.estado_pago}
-                          </Badge>
+                        <td data-label="Pago">
+                          <EstadoBadge estado={p.estado_pago} />
                         </td>
-                        <td>{p.metodo_pago ?? "-"}</td>
-                        <td className="text-nowrap">
-                          <Button
-                             variant="outline-secondary"
-                             size="sm"
-                             className="me-2"
-                             onClick={() => abrirModalVer(p)}
-                           >
-                             <i className="bi bi-eye"></i>
-                          </Button>
-                          <Button
+                        <td data-label="Método">{p.metodo_pago ?? "-"}</td>
+                        <td data-label="Acciones" className="text-nowrap celda-acciones">
+                          <IconButton
+                            icon="bi-eye"
+                            variant="outline-secondary"
+                            className="me-2"
+                            title="Ver"
+                            onClick={() => abrirModalVer(p)}
+                          />
+                          <IconButton
+                            icon="bi-pencil-square"
                             variant="outline-primary"
-                            size="sm"
                             className="me-2 btn-edit-pedido"
+                            title="Editar"
                             onClick={() => abrirModalEditar(p)}
-                            disabled={p.estado_pago === "PAGADO"}  // no editar pedidos pagados
-                          >
-                            <i className="bi bi-pencil-square"></i>
-                          </Button>
-                          <Button
+                            disabled={p.estado_pago === "PAGADO"}
+                          />
+                          <IconButton
+                            icon="bi-trash"
                             variant="outline-danger"
-                            size="sm"
+                            className="btn-delete-pedido"
+                            title="Eliminar"
                             onClick={() => handleEliminarPedido(p)}
                             disabled={p.estado_pago === "PAGADO"}
-                            className="btn-delete-pedido"
-                          >
-                            <i className="bi bi-trash"></i>
-                          </Button>
+                          />
                         </td>
                       </tr>
                     ))}

@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col, Card, Table, Button, Form, InputGroup, Spinner, Modal, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { usuarioService } from "../../services/usuariosService";
-import "../../styles/UsuariosPage.css"; 
+import "../../styles/UsuariosPage.css";
 import { BsCalendar, BsFunnel, BsSearch, BsPencil, BsTrash, BsPeopleFill, BsPersonPlusFill, BsPersonLinesFill, BsCheckCircle, BsXCircle, BsLock, BsListNested } from "react-icons/bs";
+import PageHeader from "../../components/molecules/PageHeader";
 
 
 const UsuarioModal = ({ show, handleClose, isEditing, form, setForm, handleSubmit }) => (
@@ -197,12 +198,7 @@ export default function UsuariosPage() {
         <div className="usuarios-page">
             
             {/* HEADER CON GRADIENTE */}
-            <div className="modulo-header-usuarios mb-4">
-                <div className="header-content container-fluid px-3">
-                    <h1 className="page-title-usuarios">Gestión de Usuarios</h1>
-                    <p className="page-subtitle-usuarios">Administración y roles del personal del sistema</p>
-                </div>
-            </div>
+            <PageHeader title="Gestión de Usuarios" subtitle="Administración y roles del personal del sistema" />
 
             <Container fluid className="px-3">
                 
@@ -300,7 +296,7 @@ export default function UsuariosPage() {
                                         <i className="bi bi-inbox me-2"></i>No hay usuarios registrados
                                     </p>
                                 ) : (
-                                    <Table responsive hover className="align-middle mb-0 usuarios-table">
+                                    <Table responsive hover className="align-middle mb-0 usuarios-table tabla-responsive-cards">
                                         <thead className="table-light">
                                             <tr>
                                                 <th>Nombre</th>
@@ -313,15 +309,15 @@ export default function UsuariosPage() {
                                         <tbody>
                                             {listaFiltradaAplicada.map((u) => (
                                                 <tr key={u.id_usuario}>
-                                                    <td className="fw-semibold text-marron">{u.nombre}</td>
-                                                    <td className="text-muted">{u.email}</td>
-                                                    <td>
+                                                    <td data-label="Nombre" className="fw-semibold text-marron">{u.nombre}</td>
+                                                    <td data-label="Email" className="text-muted">{u.email}</td>
+                                                    <td data-label="Rol">
                                                         <Badge bg={getBadgeColor(u.rol)} pill>
                                                             {u.rol}
                                                         </Badge>
                                                     </td>
-                                                    <td>{new Date(u.created_at).toLocaleDateString("es-BO")}</td>
-                                                    <td className="text-center text-nowrap">
+                                                    <td data-label="Creado">{new Date(u.created_at).toLocaleDateString("es-BO")}</td>
+                                                    <td data-label="Acciones" className="text-center text-nowrap celda-acciones">
                                                         <Button variant="outline-success" size="sm" className="me-2" onClick={() => abrirEditar(u)}>
                                                             <BsPencil />
                                                         </Button>

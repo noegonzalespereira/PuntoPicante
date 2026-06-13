@@ -4,7 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import { Container, Row, Col, Card, Button, InputGroup, FormControl, Spinner, Table, Form, Badge } from "react-bootstrap";
 import { BsCalendar, BsFillLockFill, BsFillUnlockFill, BsSearch, BsPersonCircle, BsCashStack, BsGraphUp } from "react-icons/bs"; 
 import Swal from 'sweetalert2';
-import "../../styles/CajaPage.css"; 
+import "../../styles/CajaPage.css";
+import PageHeader from "../../components/molecules/PageHeader";
 
 export default function CajaPage() {
   const { user } = useAuth();
@@ -115,12 +116,7 @@ export default function CajaPage() {
 
   return (
     <Container fluid className="caja-container-fluid pt-0">
-      <div className="caja-page-header mb-4">
-        <div className="header-content">
-          <h1 className="page-title-caja">Gestión de Caja</h1>
-          <p className="text-white-50 mb-0">Apertura y cierre de caja diaria</p>
-        </div>
-      </div>
+      <PageHeader title="Gestión de Caja" subtitle="Apertura y cierre de caja diaria" />
 
       <Row className="g-4 px-3 mb-4">
         <Col lg={caja ? 6 : 12} md={12}>
@@ -277,7 +273,7 @@ export default function CajaPage() {
           <Card className="caja-historico-card p-3">
             <h5 className="mb-3 text-marron fw-bold">Historial de Cajas Registradas</h5>
             <div className="table-responsive">
-              <Table striped bordered hover size="sm" className="caja-historial-table">
+              <Table striped bordered hover size="sm" className="caja-historial-table tabla-responsive-cards">
                 <thead>
                   <tr>
                     <th>ID Caja</th>
@@ -293,17 +289,17 @@ export default function CajaPage() {
                   {historial.length > 0 ? (
                     historial.map((h) => (
                       <tr key={h.id_caja}>
-                        <td className="td-bold">{h.id_caja}</td>
-                        <td>{h.usuario_nombre || h.cajero || "Sin nombre"}</td>
-                        <td>
+                        <td data-label="ID Caja" className="td-bold">{h.id_caja}</td>
+                        <td data-label="Usuario">{h.usuario_nombre || h.cajero || "Sin nombre"}</td>
+                        <td data-label="Estado">
                           <Badge bg={h.estado === 'ABIERTA' ? 'success' : 'secondary'} className="estado-badge">
                             {h.estado || "N/A"}
                           </Badge>
                         </td>
-                        <td>{new Date(h.fecha_apertura).toLocaleString()}</td>
-                        <td>{h.fecha_cierre ? new Date(h.fecha_cierre).toLocaleString() : "N/A"}</td>
-                        <td className="text-end td-monto">{parseFloat(h.monto_apertura).toFixed(2)} Bs.</td>
-                        <td className="text-end td-monto">{h.monto_cierre ? `${parseFloat(h.monto_cierre).toFixed(2)} Bs.` : "N/A"}</td>
+                        <td data-label="Apertura">{new Date(h.fecha_apertura).toLocaleString()}</td>
+                        <td data-label="Cierre">{h.fecha_cierre ? new Date(h.fecha_cierre).toLocaleString() : "N/A"}</td>
+                        <td data-label="Monto Apertura" className="text-end td-monto">{parseFloat(h.monto_apertura).toFixed(2)} Bs.</td>
+                        <td data-label="Monto Cierre" className="text-end td-monto">{h.monto_cierre ? `${parseFloat(h.monto_cierre).toFixed(2)} Bs.` : "N/A"}</td>
                       </tr>
                     ))
                   ) : (

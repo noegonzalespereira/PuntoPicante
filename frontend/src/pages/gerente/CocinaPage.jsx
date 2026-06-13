@@ -5,6 +5,7 @@ import { cocinaService } from '../../services/cocinaService';
 import { cajaService } from '../../services/cajaService';
 import '../../styles/CocinaPage.css';
 import { BsClipboardCheck, BsCheckLg, BsEye } from 'react-icons/bs';
+import PageHeader from "../../components/molecules/PageHeader";
 
 const CocinaPage = () => {
   const [caja, setCaja] = useState(null);
@@ -226,12 +227,7 @@ const CocinaPage = () => {
   return (
     <Container fluid className="container-fluid-cocina pt-0">
       {/* HEADER */}
-      <div className="modulo-header-cocina mb-4">
-        <div className="header-content container-fluid px-3">
-          <h1 className="page-title-cocina">Cocina</h1>
-          <p className="page-subtitle-cocina">Gestión y preparación de pedidos</p>
-        </div>
-      </div>
+      <PageHeader title="Cocina" subtitle="Gestión y preparación de pedidos" />
 
       {/* ALERTA: Caja Cerrada */}
       {!caja && (

@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import { stockService } from "../../services/stockService";
 import { productoService } from "../../services/productoService";
 import "../../styles/StockPage.css";
+import PageHeader from "../../components/molecules/PageHeader";
 import { BsCalendar, BsFunnel, BsSearch, BsXCircle, BsPlusLg, BsCashCoin, BsClipboardData, BsReceipt, BsListNested, BsBagPlus, BsBoxSeam, BsEye, BsTable, BsCalendar3, BsFillTrashFill, BsPencilSquare, BsCashStack, BsCupStraw, BsEggFried } from "react-icons/bs";
 
 function hoyLocal() {
@@ -507,12 +508,7 @@ export default function StockPage() {
         <div className="stock-page">
             
             {/* HEADER CON GRADIENTE */}
-            <div className="modulo-header-stock mb-4">
-                <div className="header-content container-fluid px-3"> 
-                    <h1 className="page-title-stock">Stock Operativo</h1>
-                    <p className="page-subtitle-stock">Gestión de disponibilidad diaria e inventario</p>
-                </div>
-            </div>
+            <PageHeader title="Stock Operativo" subtitle="Gestión de disponibilidad diaria e inventario" />
 
             <Container fluid className="px-3">
                 

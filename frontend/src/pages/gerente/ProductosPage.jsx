@@ -5,6 +5,7 @@ import { productoService } from "../../services/productoService";
 
 import "../../styles/ProductosPage.css";
 import { BsPlusLg,BsFunnel, BsSearch, BsBoxSeam, BsCheckCircle, BsDashCircle, BsPencilSquare, BsTrash, BsGraphUp, BsWallet, BsImage, BsPeopleFill } from "react-icons/bs";
+import PageHeader from "../../components/molecules/PageHeader";
 
 const ProductoModal = ({ show, handleClose, isEditing, form, setForm, file, setFile, handleSubmit, productToEdit }) => {
     const handleFileChange = (e) => {
@@ -227,12 +228,7 @@ export default function ProductosPage() {
     return (
         <div className="productos-page">
             
-            <div className="modulo-header-productos mb-4">
-                <div className="header-content container-fluid px-3">
-                    <h1 className="page-title-productos">Gestión de Productos</h1>
-                    <p className="page-subtitle-productos">Registro, edición y estado de platos y bebidas</p>
-                </div>
-            </div>
+            <PageHeader title="Gestión de Productos" subtitle="Registro, edición y estado de platos y bebidas" />
 
             <Container fluid className="px-3">
                 
@@ -330,7 +326,7 @@ export default function ProductosPage() {
                 <Card className="shadow-sm border-0">
                     <Card.Body>
                         <div className="table-responsive">
-                            <Table responsive hover className="align-middle productos-table-list">
+                            <Table responsive hover className="align-middle productos-table-list tabla-responsive-cards">
                                 <thead>
                                     <tr>
                                         <th></th>
@@ -345,21 +341,21 @@ export default function ProductosPage() {
                                     {productos.length > 0 ? (
                                         productos.map((p) => (
                                             <tr key={p.id_producto} className={p.activo === 0 ? 'table-row-inactive' : ''}>
-                                                <td><img src={p.img_url || 'placeholder.jpg'} alt={p.nombre} className="product-thumb" /></td>
-                                                <td>
+                                                <td data-label="Imagen"><img src={p.img_url || 'placeholder.jpg'} alt={p.nombre} className="product-thumb" /></td>
+                                                <td data-label="Producto">
                                                     <div className="fw-bold text-marron">{p.nombre}</div>
                                                     <small className="text-muted">ID: {p.id_producto}</small>
                                                 </td>
-                                                <td>
+                                                <td data-label="Tipo">
                                                     <Badge bg={p.tipo === 'PLATO' ? 'info' : 'secondary'}>{p.tipo}</Badge>
                                                 </td>
-                                                <td className="text-end text-success fw-bold">Bs {Number(p.precio).toFixed(2)}</td>
-                                                <td className="text-center">
+                                                <td data-label="Precio" className="text-end text-success fw-bold">Bs {Number(p.precio).toFixed(2)}</td>
+                                                <td data-label="Estado" className="text-center">
                                                     <Badge bg={p.activo === 1 ? 'success' : 'danger'}>
                                                         {p.activo === 1 ? "Activo" : "Inactivo"}
                                                     </Badge>
                                                 </td>
-                                                <td className="text-center text-nowrap">
+                                                <td data-label="Acciones" className="text-center text-nowrap celda-acciones">
                                                     <Button variant="outline-success" size="sm" className="me-2" onClick={() => handleOpenModal(p)}>
                                                         <BsPencilSquare />
                                                     </Button>

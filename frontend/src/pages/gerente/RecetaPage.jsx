@@ -5,6 +5,7 @@ import Tabs from 'react-bootstrap/Tabs';
 import Swal from 'sweetalert2';
 import { BsPlusLg, BsPencilFill, BsTrashFill, BsX, BsShop, BsCalculatorFill, BsCalendar3, BsBoxSeam } from 'react-icons/bs';
 import '../../styles/RecetaPage.css'; // Asegúrate de que este archivo exista y esté linkeado
+import PageHeader from "../../components/molecules/PageHeader";
 // Importaciones REALES (Asegúrate de que estas rutas sean correctas)
 import { recetaService } from '../../services/recetaService'; 
 import { productoService } from '../../services/productoService'; 
@@ -298,12 +299,7 @@ const RecetaPage = () => {
         <div className="recetas-page-wrapper">
             
             {/* HEADER CON GRADIENTE - Ocupa todo el ancho */}
-            <div className="modulo-header-recetas mb-4">
-                <div className="header-content container-fluid px-3"> 
-                    <h1 className="page-title-recetas">Gestión de Recetas y Costos</h1>
-                    <p className="page-subtitle-recetas">Definición de insumos y cálculo de costo teórico</p>
-                </div>
-            </div>
+            <PageHeader title="Gestión de Recetas y Costos" subtitle="Definición de insumos y cálculo de costo teórico" />
             
             <Container fluid className='px-3'> {/* Contenedor fluid para el cuerpo de la página */}
                 
