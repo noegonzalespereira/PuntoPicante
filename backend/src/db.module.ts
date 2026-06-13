@@ -23,7 +23,10 @@ import { InventarioMovimiento } from './inventario/inventario-mov.entity';
         database: cfg.get<string>('DB_NAME'),
         entities: [Usuario, Caja, Producto, Pedido, DetallePedido, Gasto,InventarioProducto, InventarioMovimiento,
         ],
-        synchronize: false,      
+        // Supabase (y la mayoría de Postgres en la nube) exigen conexión SSL.
+        // Por defecto activamos SSL; en local puedes desactivarlo con DB_SSL=false.
+        ssl: cfg.get<string>('DB_SSL') === 'false' ? false : { rejectUnauthorized: false },
+        synchronize: false,
         logging: true,
       }),
     }),
