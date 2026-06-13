@@ -6,8 +6,20 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // CORS
+  // Orígenes permitidos. Se pueden sobrescribir desde Render con la variable
+  // CORS_ORIGINS (separados por coma). Si no, se usan estos por defecto.
+  const defaultOrigins = [
+    'http://localhost:5173',                              // desarrollo local (Vite)
+    'https://sistema-ventas-frontend-one.vercel.app',     // frontend en Vercel
+  ];
+  const envOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const allowedOrigins = envOrigins.length ? envOrigins : defaultOrigins;
+
   app.enableCors({
-    origin: ['http://localhost:5173'], 
+    origin: allowedOrigins,
     credentials: false,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type,Authorization',

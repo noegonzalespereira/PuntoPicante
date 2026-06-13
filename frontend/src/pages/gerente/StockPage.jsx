@@ -171,7 +171,8 @@ export default function StockPage() {
         
             const mapCant = {};
             info.platos.forEach((p) => {
-                const stockApertura = (p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0);
+                // El "stock inicial" del día ya viene calculado del backend.
+                const stockApertura = p.stock_inicial ?? ((p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0));
                 mapCant[p.id_producto] = stockApertura;
             });
 
@@ -291,15 +292,16 @@ export default function StockPage() {
                             </thead>
                             <tbody>
                                 {data.platos?.length > 0 ? data.platos.map((p) => {
-                                    // Cálculo de las columnas requeridas (Stock Dia, Vendido, Disponible)
-                                    const stockDia = (p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0); // Lo que entró
-                                    const disponible = (p.stock ?? 0); // Lo que queda
-                                    
+                                    // Tres números independientes que vienen del kardex del backend:
+                                    const stockDia = p.stock_inicial ?? 0;  // lo que se abrió (fijo)
+                                    const vendido = p.vendido ?? 0;          // venta neta del día
+                                    const disponible = p.stock ?? 0;         // lo que queda = inicial - vendido - merma
+
                                     return (
                                         <tr key={p.id_producto}>
                                             <td>{p.nombre}</td>
                                             <td className="text-center text-marron">{stockDia}</td>
-                                            <td className="text-center text-primary">{p.vendido ?? 0}</td>
+                                            <td className="text-center text-primary">{vendido}</td>
                                             <td className="text-center fw-bold">
                                                 <Badge bg={disponible > 0 ? 'success' : 'danger'}>
                                                     {disponible}
@@ -319,17 +321,21 @@ export default function StockPage() {
                         <h5 className="mt-3 text-marron fw-bold"><BsCashStack className="me-2" /> Bebidas (Stock Global)</h5>
                         <Table responsive className="tabla-stock">
                             <thead>
-                                <tr><th>Producto</th><th>Stock Global</th></tr>
+                                <tr><th>Producto</th><th>Ingresado</th><th>Vendido</th><th>Disponible</th></tr>
                             </thead>
                             <tbody>
-                                {data.bebidas?.map((b) => (
+                                {data.bebidas?.length > 0 ? data.bebidas.map((b) => (
                                     <tr key={b.id_producto}>
                                         <td>{b.nombre}</td>
-                                        <td>
+                                        <td className="text-center text-marron">{b.stock_inicial ?? 0}</td>
+                                        <td className="text-center text-primary">{b.vendido ?? 0}</td>
+                                        <td className="text-center fw-bold">
                                             <Badge bg={(b.stock ?? 0) > 0 ? 'success' : 'danger'}>{b.stock ?? 0}</Badge>
                                         </td>
                                     </tr>
-                                ))}
+                                )) : (
+                                    <tr><td colSpan="4" className="text-center text-muted">No hay bebidas con stock.</td></tr>
+                                )}
                             </tbody>
                         </Table>
                     </Col>
@@ -429,15 +435,20 @@ export default function StockPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {bebidasBase.length > 0 ? bebidasBase.map((b) => (
-                            <tr key={b.id_producto}>
-                                <td>{b.id_producto}</td>
-                                <td>{b.nombre}</td>
-                                <td>
-                                    <Badge bg={(b.stock ?? 0) > 0 ? 'success' : 'danger'}>{b.stock ?? 0}</Badge>
-                                </td>
-                            </tr>
-                        )) : (
+                        {bebidasBase.length > 0 ? bebidasBase.map((b) => {
+                            // El stock real vive en el inventario (data.bebidas), no en el catálogo de productos.
+                            const inv = data.bebidas?.find((x) => x.id_producto === b.id_producto);
+                            const disponible = inv?.stock ?? 0;
+                            return (
+                                <tr key={b.id_producto}>
+                                    <td>{b.id_producto}</td>
+                                    <td>{b.nombre}</td>
+                                    <td>
+                                        <Badge bg={disponible > 0 ? 'success' : 'danger'}>{disponible}</Badge>
+                                    </td>
+                                </tr>
+                            );
+                        }) : (
                             <tr><td colSpan="3" className="text-center text-muted">No hay bebidas base activas.</td></tr>
                         )}
                     </tbody>

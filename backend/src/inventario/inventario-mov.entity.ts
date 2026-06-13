@@ -4,8 +4,10 @@ import {
 import { InventarioProducto } from './inventario-producto.entity';
 
 export enum TipoMovimiento {
-  INGRESO = 'INGRESO',
-  MERMA   = 'MERMA',
+  INGRESO    = 'INGRESO',     // entró stock (apertura de platos / ingreso de bebidas)
+  VENTA      = 'VENTA',       // salió stock por una venta
+  DEVOLUCION = 'DEVOLUCION',  // volvió stock por anulación o reducción de un pedido
+  MERMA      = 'MERMA',       // se perdió stock (mala preparación, caducidad, etc.)
 }
 
 @Entity('inventario_mov')

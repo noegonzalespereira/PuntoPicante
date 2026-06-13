@@ -39,7 +39,12 @@ export class InventarioProducto {
   @Column({ type: 'date', name: 'fecha', nullable: true })
   fecha: string | null;
 
-  /** Cantidad disponible (cupo inicial y luego se va descontando con ventas/mermas) */
+  /**
+   * Stock INICIAL (inmutable): lo que se abrió el día (PLATO) o el total ingresado (BEBIDA).
+   * Ya NO se descuenta con las ventas. El stock disponible se calcula como:
+   *   disponible = cantidad_inicial - ventas + devoluciones - mermas
+   * sumando los movimientos del kardex (tabla inventario_mov).
+   */
   @Column({ type: 'int', name: 'cantidad_inicial' })
   cantidad_inicial: number;
 
