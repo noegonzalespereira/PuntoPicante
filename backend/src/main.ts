@@ -9,8 +9,8 @@ async function bootstrap() {
   // Orígenes permitidos. Se pueden sobrescribir desde Render con la variable
   // CORS_ORIGINS (separados por coma). Si no, se usan estos por defecto.
   const defaultOrigins = [
-    'http://localhost:5173',                              // desarrollo local (Vite)
-    'https://sistema-ventas-frontend-one.vercel.app',     // frontend en Vercel
+    'http://localhost:5173',                  // desarrollo local (Vite)
+    'https://punto-picante.vercel.app',       // frontend en Vercel
   ];
   const envOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
