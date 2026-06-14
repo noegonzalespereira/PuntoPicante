@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Card, Button, InputGroup, FormControl, Table, Form, Spinner } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { gastoService } from "../../services/gastosService";
 import { BsCalendar, BsFunnel, BsSearch, BsXCircle, BsPlusLg, BsCashCoin, BsClipboardData, BsReceipt, BsListNested,BsPencilSquare, BsFillTrashFill } from "react-icons/bs";
 import "../../styles/GastosPage.css";
@@ -39,7 +40,7 @@ export default function GastosPage() {
             setResumen(resumenData);
         } catch (error) {
             console.error(error);
-            Swal.fire("❌", "Error al cargar los gastos", "error");
+            toast.error("Error al cargar los gastos");
         } finally {
             setLoading(false);
         }
@@ -47,7 +48,7 @@ export default function GastosPage() {
 
     async function aplicarFiltros() {
         if (!filtros.desde && !filtros.hasta) {
-            return Swal.fire("⚠️", "Seleccione al menos una fecha para filtrar.", "warning");
+            return toast.warning("Seleccione al menos una fecha para filtrar.");
         }
         await cargarGastos(filtros);
     }
@@ -86,11 +87,11 @@ export default function GastosPage() {
 
         try {
             await gastoService.create(formValues);
-            Swal.fire("","Gasto registrado correctamente", "success");
+            toast.success("Gasto registrado correctamente");
             await cargarGastos(filtros);
         } catch (error) {
             console.error(error);
-            Swal.fire("","Error al registrar el gasto", "error");
+            toast.error("Error al registrar el gasto");
         }
     }
 
@@ -146,12 +147,12 @@ export default function GastosPage() {
 
   try {
     await gastoService.update(g.id_gasto, formValues);
-    Swal.fire("", "Gasto actualizado", "success");
-    await cargarGastos(filtros); 
+    toast.success("Gasto actualizado");
+    await cargarGastos(filtros);
   } catch (err) {
     console.error(err);
     const msg = err?.response?.data?.message || "Error al actualizar";
-    Swal.fire("", String(msg), "error");
+    toast.error(String(msg));
   }
 }
 
@@ -169,12 +170,12 @@ async function eliminarGasto(g) {
 
   try {
     await gastoService.delete(g.id_gasto);
-    Swal.fire("", "Gasto eliminado", "success");
-    await cargarGastos(filtros); 
+    toast.success("Gasto eliminado");
+    await cargarGastos(filtros);
   } catch (err) {
     console.error(err);
     const msg = err?.response?.data?.message || "Error al eliminar (¿tienes rol GERENTE?)";
-    Swal.fire("", String(msg), "error");
+    toast.error(String(msg));
   }
 }
 

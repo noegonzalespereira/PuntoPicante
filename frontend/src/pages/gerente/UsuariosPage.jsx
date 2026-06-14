@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col, Card, Table, Button, Form, InputGroup, Spinner, Modal, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { usuarioService } from "../../services/usuariosService";
 import "../../styles/UsuariosPage.css";
 import { BsCalendar, BsFunnel, BsSearch, BsPencil, BsTrash, BsPeopleFill, BsPersonPlusFill, BsPersonLinesFill, BsCheckCircle, BsXCircle, BsLock, BsListNested } from "react-icons/bs";
@@ -89,7 +90,7 @@ export default function UsuariosPage() {
             setUsuarios(dataArray); 
             setStats({ total, cajeros, cocina });
         } catch (error) {
-            Swal.fire("Error", "No se pudieron cargar los usuarios", "error");
+            toast.error("No se pudieron cargar los usuarios");
         } finally {
             setLoading(false);
         }
@@ -124,7 +125,7 @@ export default function UsuariosPage() {
 
     const handleGuardarUsuarioSubmit = async () => {
         if (!form.nombre || !form.email || (!editMode && !form.password) || !form.rol) {
-            Swal.fire("Advertencia", "Completa todos los campos obligatorios", "warning");
+            toast.warning("Completa todos los campos obligatorios");
             return;
         }
 
@@ -134,17 +135,17 @@ export default function UsuariosPage() {
             if (editMode) {
                 if (!form.password) delete userData.password;
                 await usuarioService.update(form.id_usuario, userData);
-                Swal.fire("Éxito", "Usuario actualizado correctamente", "success");
+                toast.success("Usuario actualizado correctamente");
             } else {
-                delete userData.id_usuario; 
+                delete userData.id_usuario;
                 await usuarioService.create(userData);
-                Swal.fire("Éxito", "Usuario creado correctamente", "success");
+                toast.success("Usuario creado correctamente");
             }
 
             handleCloseModal();
-            await cargarUsuarios(); // Recargar la lista
+            await cargarUsuarios();
         } catch (error) {
-            Swal.fire("Error", error.response?.data?.message || "Error al guardar el usuario", "error");
+            toast.error(error.response?.data?.message || "Error al guardar el usuario");
         }
     };
 
@@ -161,10 +162,10 @@ export default function UsuariosPage() {
 
         try {
             await usuarioService.remove(id);
-            Swal.fire("Éxito", "Usuario eliminado", "success");
+            toast.success("Usuario eliminado");
             await cargarUsuarios();
         } catch {
-            Swal.fire("Error", "Error al eliminar", "error");
+            toast.error("Error al eliminar");
         }
     }
 

@@ -719,7 +719,7 @@ const rango = useMemo(() => {
                 </h6>
                 <Card className="modern-card">
                   <Card.Body className="p-0">
-                    <Table className="info-table mb-0" responsive>
+                    <Table className="info-table mb-0 tabla-responsive-cards" responsive>
                       <thead>
                         <tr>
                           <th>Fecha Apertura</th>
@@ -732,25 +732,25 @@ const rango = useMemo(() => {
                       <tbody>
                         {cajaHistorial.map((c, i) => (
                           <tr key={i}>
-                            <td>
+                            <td data-label="Fecha Apertura">
                               {c.fecha_apertura
                                 ? formatFechaVisual(c.fecha_apertura)
                                 : "-"}
                             </td>
-                            <td>
+                            <td data-label="Fecha Cierre">
                               {c.fecha_cierre
                                 ? formatFechaVisual(c.fecha_cierre)
                                 : "-"}
                             </td>
-                            <td>
+                            <td data-label="Cajero">
                               {c.usuario_nombre || c.cajero || "N/A"}
                             </td>
-                            <td className="text-end">
+                            <td data-label="Apertura (Bs)" className="text-end">
                               {Number(
                                 c.monto_apertura || 0
                               ).toFixed(2)}
                             </td>
-                            <td className="text-end">
+                            <td data-label="Cierre (Bs)" className="text-end">
                               {Number(
                                 c.monto_cierre || 0
                               ).toFixed(2)}
@@ -777,7 +777,7 @@ const rango = useMemo(() => {
         </div>
         <Card className="modern-card">
           <Card.Body className="p-0">
-            <Table className="gastos-table mb-0" responsive>
+            <Table className="gastos-table mb-0 tabla-responsive-cards" responsive>
               <thead>
                 <tr>
                   <th>Fecha</th>
@@ -788,13 +788,13 @@ const rango = useMemo(() => {
               <tbody>
                 {gastosDetalle.map((g, i) => (
                   <tr key={i}>
-                    <td>
+                    <td data-label="Fecha">
                       {g.fecha
                         ? formatFechaVisual(g.fecha)
                         : "-"}
                     </td>
-                    <td>{g.descripcion}</td>
-                    <td className="text-end">
+                    <td data-label="Descripción">{g.descripcion}</td>
+                    <td data-label="Monto" className="text-end">
                       Bs {Number(g.monto).toFixed(2)}
                     </td>
                   </tr>
@@ -825,116 +825,150 @@ const rango = useMemo(() => {
     </>
   );
 
-  const TabOperacional = () => (
-    <Row className="g-4">
-      <Col lg={6}>
-        <div className="report-section">
-          <div className="section-header">
-            <BsBoxSeam className="section-icon" />
-            <h5 className="section-title">Desglose Operacional</h5>
-          </div>
-          <Card className="modern-card p-4">
+  const TabOperacional = () => {
+    const platos  = inventario.vendidosDetalle.filter(p => p.tipo === 'PLATO');
+    const bebidas = inventario.vendidosDetalle.filter(p => p.tipo === 'BEBIDA');
+    const extras  = inventario.vendidosDetalle.filter(p => p.tipo === 'EXTRA');
+
+    const totalPlatos  = platos.reduce((s, p)  => s + Number(p.ventas ?? 0), 0);
+    const totalBebidas = bebidas.reduce((s, p) => s + Number(p.ventas ?? 0), 0);
+    const totalExtras  = extras.reduce((s, p)  => s + Number(p.ventas ?? 0), 0);
+    const totalRestaurante = totalPlatos + totalBebidas;
+
+    const TablaVentas = ({ filas, emptyMsg }) => (
+      <Table className="info-table mb-0 tabla-responsive-cards" responsive size="sm">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th className="text-end">Uds.</th>
+            <th className="text-end">Bs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.length ? filas.map((p, idx) => (
+            <tr key={idx}>
+              <td data-label="Producto">{p.nombre}</td>
+              <td data-label="Uds." className="text-end">{p.cantidad}x</td>
+              <td data-label="Bs" className="text-end">{Number(p.ventas ?? 0).toFixed(2)}</td>
+            </tr>
+          )) : (
+            <tr><td colSpan={3} className="text-center text-muted py-2">{emptyMsg}</td></tr>
+          )}
+        </tbody>
+      </Table>
+    );
+
+    return (
+    <div>
+      {/* Pedidos por destino */}
+      <Row className="g-3 mb-4">
+        <Col lg={12}>
+          <Card className="modern-card p-3">
             <h6 className="text-muted mb-2">Pedidos por tipo</h6>
             <div className="stat-grid">
-              <div className="stat-item">
-                <span className="stat-value">
-                  {inventario.comer}
-                </span>
-                <span className="stat-label">Para Comer</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">
-                  {inventario.llevar}
-                </span>
-                <span className="stat-label">Para Llevar</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">
-                  {inventario.mixtos}
-                </span>
-                <span className="stat-label">Mixtos</span>
-              </div>
-            </div>
-            <hr />
-            <h6 className="text-muted mb-2">Platos por destino (unidades)</h6>
-            <div className="stat-grid">
-              <div className="stat-item">
-                <span className="stat-value">{inventario.platosMesa}</span>
-                <span className="stat-label">A Mesa</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-value">{inventario.platosLlevar}</span>
-                <span className="stat-label">Para Llevar</span>
-              </div>
+              <div className="stat-item"><span className="stat-value">{inventario.comer}</span><span className="stat-label">Para Comer</span></div>
+              <div className="stat-item"><span className="stat-value">{inventario.llevar}</span><span className="stat-label">Para Llevar</span></div>
+              <div className="stat-item"><span className="stat-value">{inventario.mixtos}</span><span className="stat-label">Mixtos</span></div>
+              <div className="stat-item"><span className="stat-value">{inventario.platosMesa}</span><span className="stat-label">Ítems a Mesa</span></div>
+              <div className="stat-item"><span className="stat-value">{inventario.platosLlevar}</span><span className="stat-label">Ítems Llevar</span></div>
             </div>
           </Card>
-        </div>
-      </Col>
+        </Col>
+      </Row>
 
-      <Col lg={6}>
-        <div className="report-section">
+      {/* Desglose por tipo de producto */}
+      <Row className="g-4">
+        {/* PLATOS */}
+        <Col lg={4}>
           <div className="section-header">
             <BsReceipt className="section-icon" />
-            <h5 className="section-title">
-              Detalle de Productos Vendidos
-            </h5>
+            <h5 className="section-title">Platos</h5>
           </div>
           <Card className="modern-card">
             <Card.Body className="p-0">
-              <Table className="info-table mb-0" responsive>
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th className="text-end">Cantidad</th>
-                    <th className="text-end">Ventas (Bs)</th>
-                  </tr>
-                </thead>
+              <TablaVentas filas={platos} emptyMsg="Sin platos vendidos" />
+            </Card.Body>
+            <Card.Footer className="text-end fw-bold text-success">
+              Total platos: Bs {totalPlatos.toFixed(2)}
+            </Card.Footer>
+          </Card>
+        </Col>
+
+        {/* BEBIDAS */}
+        <Col lg={4}>
+          <div className="section-header">
+            <BsBoxSeam className="section-icon" />
+            <h5 className="section-title">Bebidas</h5>
+          </div>
+          <Card className="modern-card">
+            <Card.Body className="p-0">
+              <TablaVentas filas={bebidas} emptyMsg="Sin bebidas vendidas" />
+            </Card.Body>
+            <Card.Footer className="text-end fw-bold text-success">
+              Total bebidas: Bs {totalBebidas.toFixed(2)}
+            </Card.Footer>
+          </Card>
+        </Col>
+
+        {/* EXTRAS */}
+        <Col lg={4}>
+          <div className="section-header">
+            <BsReceipt className="section-icon" style={{ color: '#f59e0b' }} />
+            <h5 className="section-title" style={{ color: '#92400e' }}>
+              Extras <small className="fs-6 text-muted">(emprendimiento)</small>
+            </h5>
+          </div>
+          <Card className="modern-card" style={{ border: '1.5px dashed #f59e0b' }}>
+            <Card.Body className="p-0">
+              <TablaVentas filas={extras} emptyMsg="Sin extras vendidos" />
+            </Card.Body>
+            <Card.Footer className="text-end fw-bold text-warning">
+              Ref. extras: Bs {totalExtras.toFixed(2)}
+              <div className="small text-muted fw-normal">No se incluye en el total del restaurante</div>
+            </Card.Footer>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* TOTAL RESTAURANTE */}
+      <Row className="mt-4">
+        <Col xs={12}>
+          <Card className="modern-card" style={{ background: 'linear-gradient(to right, #1b5e20, #2e7d32)', color: '#fff' }}>
+            <Card.Body className="d-flex justify-content-between align-items-center flex-wrap gap-2 py-3 px-4">
+              <div>
+                <div className="fw-bold fs-5">TOTAL RESTAURANTE</div>
+                <div className="small opacity-75">Platos + Bebidas (sin extras)</div>
+              </div>
+              <div className="fw-bold fs-3">Bs {totalRestaurante.toFixed(2)}</div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Mermas */}
+      <Row className="mt-3">
+        <Col xs={12}>
+          <Card className="modern-card">
+            <Card.Body className="p-0">
+              <Table className="info-table mb-0" responsive size="sm">
                 <tbody>
-                  {inventario.vendidosDetalle.map((p, idx) => (
-                    <tr key={idx}>
-                      <td>{p.nombre}</td>
-                      <td className="text-end">
-                        {p.cantidad}x
-                      </td>
-                      <td className="text-end">
-                        {Number(p.ventas ?? 0).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  <tr>
+                    <td>Mermas (Unidades)</td>
+                    <td className="text-end fw-bold">{inventario.mermasUnidades} uds.</td>
+                  </tr>
+                  <tr>
+                    <td>Mermas (Costo estimado)</td>
+                    <td className="text-end text-danger fw-bold">-Bs {Number(inventario.mermasCosto).toFixed(2)}</td>
+                  </tr>
                 </tbody>
               </Table>
             </Card.Body>
           </Card>
-
-          <div className="report-section mt-3">
-            <Card className="modern-card">
-              <Card.Body className="p-0">
-                <Table className="info-table mb-0" responsive>
-                  <tbody>
-                    <tr>
-                      <td>Mermas (Unidades)</td>
-                      <td className="text-end fw-bold">
-                        {inventario.mermasUnidades} uds.
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Mermas (Costo Total)</td>
-                      <td className="text-end text-danger fw-bold">
-                        -Bs{" "}
-                        {Number(
-                          inventario.mermasCosto
-                        ).toFixed(2)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </Card.Body>
-            </Card>
-          </div>
-        </div>
-      </Col>
-    </Row>
-  );
+        </Col>
+      </Row>
+    </div>
+    );
+  };
 
   /* =========================
      Render
@@ -954,7 +988,7 @@ const rango = useMemo(() => {
       <Form.Label className="filtro-label">
         <BsCalendar className="me-2" /> Rango del Reporte
       </Form.Label>
-      <div className="d-flex gap-2">
+      <div className="d-flex flex-column flex-sm-row gap-2">
         <Form.Control
           type="date"
           value={fechaDesde}
@@ -971,7 +1005,7 @@ const rango = useMemo(() => {
     </Form.Group>
   </Col>
 
-  <Col md={4} className="text-center">
+  <Col md={4} className="text-center d-none d-md-block">
     <span className="fecha-label">Rango seleccionado</span>
     <h6 className="fecha-valor">
       {formatFechaVisual(rango.desde)} — {formatFechaVisual(rango.hasta)}

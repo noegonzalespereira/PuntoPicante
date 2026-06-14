@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn } from 'typeorm';
 import { DetallePedido } from '../pedidos/detalle-pedido.entity';
 
-export enum TipoProducto { PLATO='PLATO', BEBIDA='BEBIDA' }
+export enum TipoProducto { PLATO='PLATO', BEBIDA='BEBIDA', EXTRA='EXTRA' }
 
 @Entity('productos')
 export class Producto {

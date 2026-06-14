@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Button, InputGroup, FormControl, Table, Form
 import Tab from 'react-bootstrap/Tab';
 import Tabs from 'react-bootstrap/Tabs';
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { stockService } from "../../services/stockService";
 import { productoService } from "../../services/productoService";
 import "../../styles/StockPage.css";
@@ -99,7 +100,8 @@ export default function StockPage() {
     const [data, setData] = useState({ platos: [], bebidas: [] });
     const [resumen, setResumen] = useState({ platos: 0, bebidas: 0, vendidos: 0 });
     const [platos, setPlatos] = useState([]);
-    const [cantidades, setCantidades] = useState({});
+    const [cantidades, setCantidades] = useState({});   // unidades a AÑADIR (incremental)
+    const [infoPlatos, setInfoPlatos] = useState({});   // { [id]: { stock_inicial, disponible, vendido, merma } }
     const [bebidasBase, setBebidasBase] = useState([]);
     const [mermas, setMermas] = useState([]);
     const [loadingGeneral, setLoadingGeneral] = useState(false);
@@ -166,75 +168,80 @@ export default function StockPage() {
         } catch (error) { console.error("Error al cargar bebidas base:", error); }
     };
 
-    const cargarAperturaExistente = async () => { 
+    const cargarAperturaExistente = async () => {
         try {
-            const info = await stockService.getDisponible(fecha_apertura); 
-        
-            const mapCant = {};
+            const info = await stockService.getDisponible(fecha_apertura);
+
+            // Guardamos info completa por producto para calcular nueva cantidad_inicial al guardar
+            const mapInfo = {};
             info.platos.forEach((p) => {
-                // El "stock inicial" del día ya viene calculado del backend.
-                const stockApertura = p.stock_inicial ?? ((p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0));
-                mapCant[p.id_producto] = stockApertura;
+                mapInfo[p.id_producto] = {
+                    stock_inicial: p.stock_inicial ?? 0,
+                    disponible:   p.stock       ?? 0,
+                    vendido:      p.vendido     ?? 0,
+                    merma:        p.merma       ?? 0,
+                };
             });
 
             const { data: base } = await productoService.getAll({ tipo: "PLATO", activo: 1 });
-            const platosCompletos = base.map((plato) => ({
-                ...plato,
-                stock: mapCant[plato.id_producto] ?? 0, 
-            }));
-
-            setPlatos(platosCompletos);
-            setCantidades(mapCant);
+            setPlatos(base || []);
+            setInfoPlatos(mapInfo);
+            setCantidades({}); // campo "a añadir" empieza vacío
         } catch (error) { console.error("Error al cargar apertura existente:", error); }
     };
 
-    const guardarApertura = async () => { 
+    const guardarApertura = async () => {
         try {
             const items = Object.entries(cantidades)
                 .filter(([_, cant]) => cant !== "" && Number(cant) > 0)
-                .map(([id_producto, cantidad_inicial]) => ({
-                    id_producto: Number(id_producto),
-                    cantidad_inicial: Number(cantidad_inicial),
-                }));
+                .map(([id_producto, adicional]) => {
+                    const info = infoPlatos[id_producto] ?? { stock_inicial: 0 };
+                    return {
+                        id_producto: Number(id_producto),
+                        // nueva cantidad_inicial = lo que había + lo que se añade ahora
+                        cantidad_inicial: info.stock_inicial + Number(adicional),
+                    };
+                });
 
             if (items.length === 0) {
-                Swal.fire("Advertencia", "Debes ingresar al menos un valor de stock inicial mayor a cero.", "warning");
+                toast.warning("Ingresa al menos una cantidad a añadir mayor a cero.");
                 return;
             }
 
             await stockService.registrarApertura({ fecha: fecha_apertura, items });
-            Swal.fire("Éxito", "Apertura registrada correctamente", "success");
+            toast.success("Stock actualizado correctamente");
+            await cargarAperturaExistente(); // refresca disponibles
             cargarDisponibilidad();
         } catch (error) {
-            Swal.fire("Error", "Error al registrar la apertura", "error");
+            toast.error("Error al registrar la apertura");
         }
     };
 
     const registrarIngresoBebida = async () => { 
         try {
             if (!bebidaSeleccionada || Number(cantidadBebida) <= 0) {
-                Swal.fire("Advertencia", "Selecciona una bebida y cantidad válida", "warning");
+                toast.warning("Selecciona una bebida y cantidad válida");
                 return;
             }
             await stockService.ingresoBebida({
                 id_producto: Number(bebidaSeleccionada),
                 cantidad: Number(cantidadBebida),
             });
-            Swal.fire("Éxito", "Ingreso registrado correctamente", "success");
+            toast.success("Ingreso de bebida registrado correctamente");
             setShowModalBebida(false);
             setBebidaSeleccionada("");
             setCantidadBebida("");
             cargarDisponibilidad();
             cargarBebidasBase();
         } catch (error) {
-            Swal.fire("Error", "Error al registrar ingreso", "error");
+            toast.error("Error al registrar ingreso");
         }
     };
 
     const registrarMerma = async () => { 
         try {
             if (!mermaState.productoMerma || Number(mermaState.cantidadMerma) <= 0) {
-                Swal.fire("Advertencia", "Completa producto y cantidad válida", "warning");
+                toast.warning("Completa producto y cantidad válida");
                 return;
             }
 
@@ -246,13 +253,13 @@ export default function StockPage() {
                 fecha: mermaState.fechaMerma,
             });
 
-            Swal.fire("Éxito", "Merma registrada correctamente", "success");
+            toast.success("Merma registrada correctamente");
             setShowModalMerma(false);
             setMermaState({ ...mermaState, cantidadMerma: "", motivoMerma: "", productoMerma: "" });
             cargarDisponibilidad();
-            cargarMermas(); 
+            cargarMermas();
         } catch (error) {
-            Swal.fire("Error", "Error al registrar merma", "error");
+            toast.error("Error al registrar merma");
         }
     };
 
@@ -287,7 +294,7 @@ export default function StockPage() {
                     {/* Platos */}
                     <Col lg={6}>
                         <h5 className="mt-3 text-marron fw-bold"><BsBoxSeam className="me-2" /> Platos (Fecha: {fecha_disponibilidad})</h5>
-                        <Table responsive className="tabla-stock">
+                        <Table responsive className="tabla-stock tabla-responsive-cards">
                             <thead>
                                 <tr><th>Producto</th><th>Stock Día</th><th>Vendido</th><th>Disponible</th></tr>
                             </thead>
@@ -300,10 +307,10 @@ export default function StockPage() {
 
                                     return (
                                         <tr key={p.id_producto}>
-                                            <td>{p.nombre}</td>
-                                            <td className="text-center text-marron">{stockDia}</td>
-                                            <td className="text-center text-primary">{vendido}</td>
-                                            <td className="text-center fw-bold">
+                                            <td data-label="Producto">{p.nombre}</td>
+                                            <td data-label="Stock Día" className="text-center text-marron">{stockDia}</td>
+                                            <td data-label="Vendido" className="text-center text-primary">{vendido}</td>
+                                            <td data-label="Disponible" className="text-center fw-bold">
                                                 <Badge bg={disponible > 0 ? 'success' : 'danger'}>
                                                     {disponible}
                                                 </Badge>
@@ -320,17 +327,17 @@ export default function StockPage() {
                     {/* Bebidas */}
                     <Col lg={6}>
                         <h5 className="mt-3 text-marron fw-bold"><BsCashStack className="me-2" /> Bebidas (Stock Global)</h5>
-                        <Table responsive className="tabla-stock">
+                        <Table responsive className="tabla-stock tabla-responsive-cards">
                             <thead>
                                 <tr><th>Producto</th><th>Ingresado</th><th>Vendido</th><th>Disponible</th></tr>
                             </thead>
                             <tbody>
                                 {data.bebidas?.length > 0 ? data.bebidas.map((b) => (
                                     <tr key={b.id_producto}>
-                                        <td>{b.nombre}</td>
-                                        <td className="text-center text-marron">{b.stock_inicial ?? 0}</td>
-                                        <td className="text-center text-primary">{b.vendido ?? 0}</td>
-                                        <td className="text-center fw-bold">
+                                        <td data-label="Producto">{b.nombre}</td>
+                                        <td data-label="Ingresado" className="text-center text-marron">{b.stock_inicial ?? 0}</td>
+                                        <td data-label="Vendido" className="text-center text-primary">{b.vendido ?? 0}</td>
+                                        <td data-label="Disponible" className="text-center fw-bold">
                                             <Badge bg={(b.stock ?? 0) > 0 ? 'success' : 'danger'}>{b.stock ?? 0}</Badge>
                                         </td>
                                     </tr>
@@ -348,7 +355,7 @@ export default function StockPage() {
     const TabApertura = () => (
         <Card className="stock-card-content">
             <Card.Body>
-                <h4 className="titulo-seccion-card fw-bold">🍽️ Apertura de Platos del Día</h4>
+                <h4 className="titulo-seccion-card fw-bold">Apertura de Platos del Día</h4>
                 <Row className="mb-4 align-items-end g-3">
                     <Col md={4}>
                         <Form.Label className="fw-bold">Seleccionar Fecha de Apertura</Form.Label>
@@ -426,11 +433,10 @@ export default function StockPage() {
                     <BsBagPlus className="me-2" /> Ingresar Nueva Bebida
                 </Button>
 
-                <h5 className="mt-4 mb-3 fw-bold text-dark-gray"><BsTable className="me-2" /> Bebidas Registradas (Base)</h5>
-                <Table responsive hover size="sm" className="tabla-stock">
+                <h5 className="mt-4 mb-3 fw-bold text-dark-gray"><BsTable className="me-2" /> Bebidas Registradas </h5>
+                <Table responsive hover size="sm" className="tabla-stock tabla-responsive-cards">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Nombre de la Bebida</th>
                             <th>Stock Global</th>
                         </tr>
@@ -442,9 +448,8 @@ export default function StockPage() {
                             const disponible = inv?.stock ?? 0;
                             return (
                                 <tr key={b.id_producto}>
-                                    <td>{b.id_producto}</td>
-                                    <td>{b.nombre}</td>
-                                    <td>
+                                    <td data-label="Nombre">{b.nombre}</td>
+                                    <td data-label="Stock Global">
                                         <Badge bg={disponible > 0 ? 'success' : 'danger'}>{disponible}</Badge>
                                     </td>
                                 </tr>
@@ -471,7 +476,7 @@ export default function StockPage() {
                 </div>
 
                 <h5 className="mt-5 mb-3 fw-bold text-dark-gray"><BsListNested className="me-2" /> Historial de Mermas (Últimos 7 días)</h5>
-                <Table responsive hover size="sm" className="tabla-stock">
+                <Table responsive hover size="sm" className="tabla-stock tabla-responsive-cards">
                     <thead>
                         <tr>
                             <th>Fecha</th>
@@ -484,11 +489,11 @@ export default function StockPage() {
                     <tbody>
                         {mermas.length > 0 ? mermas.map((m, index) => (
                             <tr key={index}>
-                                <td>{m.fecha}</td>
-                                <td><Badge bg={m.tipo === 'PLATO' ? 'secondary' : 'warning'}>{m.tipo}</Badge></td>
-                                <td>{m.producto_nombre}</td>
-                                <td className="text-center text-danger fw-bold">{m.cantidad}</td>
-                                <td>{m.motivo}</td>
+                                <td data-label="Fecha">{m.fecha}</td>
+                                <td data-label="Tipo"><Badge bg={m.tipo === 'PLATO' ? 'secondary' : 'warning'}>{m.tipo}</Badge></td>
+                                <td data-label="Producto">{m.producto_nombre}</td>
+                                <td data-label="Cantidad" className="text-center text-danger fw-bold">{m.cantidad}</td>
+                                <td data-label="Motivo">{m.motivo}</td>
                             </tr>
                         )) : (
                             <tr><td colSpan="5" className="text-center text-muted">No hay mermas registradas recientemente.</td></tr>

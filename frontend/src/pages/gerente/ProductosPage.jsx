@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Container, Row, Col, Card, Button, InputGroup, Table, Form, Modal, Spinner, Badge } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { productoService } from "../../services/productoService";
 
 import "../../styles/ProductosPage.css";
@@ -44,6 +45,7 @@ const ProductoModal = ({ show, handleClose, isEditing, form, setForm, file, setF
                             <Form.Select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} required>
                                 <option value="PLATO">PLATO</option>
                                 <option value="BEBIDA">BEBIDA</option>
+                                <option value="EXTRA">EXTRA (bolo, postre…)</option>
                             </Form.Select>
                         </Form.Group></Col>
 
@@ -130,7 +132,7 @@ export default function ProductosPage() {
             setStats({ total: data.length, activos, inactivos });
         } catch (err) {
             console.error("Error cargando productos:", err);
-            Swal.fire("Error", "No se pudieron cargar los productos", "error");
+            toast.error("No se pudieron cargar los productos");
         } finally {
             setLoading(false);
         }
@@ -162,11 +164,11 @@ export default function ProductosPage() {
 
     const handleGuardarProducto = async () => {
         if (!form.nombre || !form.precio ) {
-            Swal.fire("Advertencia", "Complete todos los campos e suba una imagen para crear un producto", "warning");
+            toast.warning("Complete todos los campos y suba una imagen para crear un producto");
             return;
         }
         if (Number(form.precio) <= 0) {
-            Swal.fire("Error", "El precio debe ser mayor a 0", "error");
+            toast.error("El precio debe ser mayor a 0");
             return;
         }
         if (!file && !editando) {
@@ -178,17 +180,16 @@ export default function ProductosPage() {
             
             if (editando) {
                 await productoService.update(editando.id_producto, form, file);
-                Swal.fire(" Actualizado", "Producto actualizado correctamente", "success");
+                toast.success("Producto actualizado correctamente");
             } else {
-                // Crear
                 await productoService.create(form, file);
-                Swal.fire(" Producto creado", "Se registró correctamente", "success");
+                toast.success("Producto registrado correctamente");
             }
             handleCloseModal();
             await loadProductos();
         } catch (err) {
             const msg = err?.response?.data?.message || err?.response?.data?.error || "No se pudo completar la operación.";
-            Swal.fire("Error", String(msg), "error");
+            toast.error(String(msg));
         }
     };
 
@@ -208,10 +209,10 @@ export default function ProductosPage() {
 
         try {
             await endpoint(p.id_producto);
-            Swal.fire("Hecho", `Producto ${accion}do correctamente`, "success");
+            toast.success(`Producto ${accion}do correctamente`);
             await loadProductos();
         } catch (err) {
-            Swal.fire("Error", `No se pudo ${accion} el producto`, "error");
+            toast.error(`No se pudo ${accion} el producto`);
         }
     };
 
@@ -295,6 +296,7 @@ export default function ProductosPage() {
                                     <option value="">Todos los tipos</option>
                                     <option value="PLATO">PLATO</option>
                                     <option value="BEBIDA">BEBIDA</option>
+                                    <option value="EXTRA">EXTRA</option>
                                 </Form.Select>
                             </Col>
 
@@ -344,10 +346,9 @@ export default function ProductosPage() {
                                                 <td data-label="Imagen"><img src={p.img_url || 'placeholder.jpg'} alt={p.nombre} className="product-thumb" /></td>
                                                 <td data-label="Producto">
                                                     <div className="fw-bold text-marron">{p.nombre}</div>
-                                                    <small className="text-muted">ID: {p.id_producto}</small>
                                                 </td>
                                                 <td data-label="Tipo">
-                                                    <Badge bg={p.tipo === 'PLATO' ? 'info' : 'secondary'}>{p.tipo}</Badge>
+                                                    <Badge bg={p.tipo === 'PLATO' ? 'info' : p.tipo === 'BEBIDA' ? 'primary' : 'warning'} text={p.tipo === 'EXTRA' ? 'dark' : undefined}>{p.tipo}</Badge>
                                                 </td>
                                                 <td data-label="Precio" className="text-end text-success fw-bold">Bs {Number(p.precio).toFixed(2)}</td>
                                                 <td data-label="Estado" className="text-center">

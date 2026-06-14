@@ -91,6 +91,20 @@
   }
 }
 
+/* Pestañas "justify" (ej. Inventario): en móvil que se deslicen en vez de apretarse */
+@media (max-width: 576px) {
+  .nav.nav-justified {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav.nav-justified .nav-item,
+  .nav.nav-justified .nav-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
 /* ============================================================
    TABLA RESPONSIVA -> TARJETAS EN MÓVIL
    Uso: <Table className="tabla-responsive-cards"> y en cada <td>

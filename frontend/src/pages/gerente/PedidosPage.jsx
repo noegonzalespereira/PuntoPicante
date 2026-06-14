@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import {
-  Container, Row, Col, Card, Button, Table, Modal, Form, Badge, Spinner, Alert
+  Container, Row, Col, Card, Button, Table, Modal, Form, Badge, Spinner, Alert, Pagination,
+  Dropdown, DropdownButton
 } from "react-bootstrap";
 import Swal from "sweetalert2";
+import { toast } from "sonner";
 import { pedidoService } from "../../services/pedidosService";
 import { productoService } from "../../services/productoService";
 import { cajaService } from "../../services/cajaService";
@@ -56,6 +58,8 @@ export default function PedidosPage() {
   const [categoriaActiva, setCategoriaActiva] = useState("Todos");
   const [searchProducto, setSearchProducto] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [] });
   const [appendContext, setAppendContext] = useState(null);
@@ -106,8 +110,8 @@ export default function PedidosPage() {
       setProductos(prodData.data ?? prodData ?? []);
 
       const data = await pedidoService.getAll();
-      // setPedidos(data.data || []);
       setPedidos(asArray(data));
+      setCurrentPage(1);
 
       await cargarStockDelDia();
     } catch (err) {
@@ -129,21 +133,16 @@ export default function PedidosPage() {
 
   function agregarProducto(producto) {
     if (!cajaAbierta && !appendContext) {
-      Swal.fire("", "Debe abrir una caja primero", "warning");
+      toast.warning("Debe abrir una caja primero");
       return false;
     }
     const restante = getStockRestante(producto.id_producto);
-    // cuánto ya hay en el carrito de este producto
     const enCarrito = pedidoActual.items
       .filter((i) => i.id_producto === producto.id_producto)
       .reduce((sum, i) => sum + i.cantidad, 0);
 
     if (restante <= 0 || enCarrito + 1 > restante) {
-      Swal.fire(
-        "Sin stock suficiente",
-        `Solo hay ${restante} unidad(es) disponible(s) de ${producto.nombre}.`,
-        "warning"
-      );
+      toast.warning(`Sin stock suficiente — solo hay ${restante} unidad(es) de ${producto.nombre}.`);
       return false;
     }
     const existe = pedidoActual.items.find((i) => i.id_producto === producto.id_producto);
@@ -181,28 +180,28 @@ export default function PedidosPage() {
 
   function validarAntesDeEnviar() {
     if (!cajaAbierta && !appendContext) {
-      Swal.fire("", "Debe abrir una caja primero", "warning");
+      toast.warning("Debe abrir una caja primero");
       return false;
     }
     if (pedidoActual.items.length === 0) {
-      Swal.fire("", "Agregue al menos un producto", "warning");
+      toast.warning("Agregue al menos un producto");
       return false;
     }
     if (!appendContext && esMesaRequerida(pedidoActual.tipo_pedido)) {
       const nMesa = Number(pedidoActual.num_mesa);
       if (!mesaValida(nMesa)) {
-        Swal.fire("", "Número de mesa inválido (1–9)", "warning");
+        toast.warning("Número de mesa inválido (1–9)");
         return false;
       }
     }
     if (!appendContext && pedidoActual.estado_pago === "PAGADO" && !pedidoActual.metodo_pago) {
-      Swal.fire("", "Seleccione el método de pago (EFECTIVO/QR)", "warning");
+      toast.warning("Seleccione el método de pago (EFECTIVO/QR)");
       return false;
     }
     if (pedidoActual.tipo_pedido === "MIXTO") {
       const sinDestino = pedidoActual.items.find((i) => !i.destino);
       if (sinDestino) {
-        Swal.fire("", "Cada ítem debe tener destino (MESA o LLEVAR)", "warning");
+        toast.warning("Cada ítem debe tener destino (MESA o LLEVAR)");
         return false;
       }
     }
@@ -235,7 +234,7 @@ export default function PedidosPage() {
       try {
         await pedidoService.addItems(appendContext.id_pedido, payload.items);
         await cargarStockDelDia();
-        Swal.fire("", `${payload.items.length} ítem(s) añadidos al pedido #${appendContext.num_pedido}`, "success");
+        toast.success(`${payload.items.length} ítem(s) añadidos al pedido #${appendContext.num_pedido}`);
         setPedidoActual({
           tipo_pedido: "MESA",
           num_mesa: "",
@@ -247,13 +246,13 @@ export default function PedidosPage() {
         setActiveTab("listado");
         loadData();
       } catch (err) {
-        Swal.fire("Error", getAxiosMessage(err), "error");
+        toast.error(getAxiosMessage(err));
       }
     } else {
       try {
         const res = await pedidoService.create(payload);
         await cargarStockDelDia();
-        Swal.fire("", `Pedido #${res.num_pedido} creado correctamente`, "success");
+        toast.success(`Pedido #${res.num_pedido} creado correctamente`);
         setPedidoActual({
           tipo_pedido: "MESA",
           num_mesa: "",
@@ -264,7 +263,7 @@ export default function PedidosPage() {
         setActiveTab("listado");
         loadData();
       } catch (err) {
-        Swal.fire("Error", getAxiosMessage(err), "error");
+        toast.error(getAxiosMessage(err));
       }
     }
   }
@@ -311,7 +310,7 @@ export default function PedidosPage() {
         },
       });
     } catch (err) {
-      Swal.fire("", "No se pudo cargar el pedido", "error");
+      toast.error("No se pudo cargar el pedido");
       setModalEditar({ open: false, loading: false, pedido: null });
     }
   }
@@ -323,7 +322,7 @@ export default function PedidosPage() {
   // Si pasa de SIN_PAGAR -> PAGADO, el método es obligatorio
   const quierePagar = p.estado_pago === "PAGADO" && p.estado_pago_original !== "PAGADO";
   if (quierePagar && !p.metodo_pago) {
-    Swal.fire("Falta método de pago", "Selecciona EFECTIVO o QR.", "warning");
+    toast.warning("Selecciona el método de pago: EFECTIVO o QR.");
     return;
   }
 
@@ -427,12 +426,10 @@ export default function PedidosPage() {
       await pedidoService.updatePagoEstado(p.id_pedido, p.metodo_pago);
     }
 
-    Swal.fire(
-      "Listo",
+    toast.success(
       quierePagar
         ? `Pedido #${p.num_pedido} actualizado y marcado como PAGADO.`
-        : `Pedido #${p.num_pedido} actualizado.`,
-      "success"
+        : `Pedido #${p.num_pedido} actualizado.`
     );
 
     setModalEditar({ open: false, loading: false, pedido: null });
@@ -441,7 +438,7 @@ export default function PedidosPage() {
   } catch (err) {
     console.error("Editar/pagar pedido ->", err?.response?.data || err);
     setModalEditar((prev) => ({ ...prev, loading: false }));
-    Swal.fire("Error", getAxiosMessage(err), "error");
+    toast.error(getAxiosMessage(err));
   }
 };
 
@@ -475,7 +472,7 @@ export default function PedidosPage() {
 
     setActiveTab("nuevo");
     setModalEditar({ open: false, loading: false, pedido: null });
-    Swal.fire("", `Esta añadiendo productos al pedido #${p.num_pedido}.`, "info");
+    toast.info(`Añadiendo productos al pedido #${p.num_pedido}`);
   };
   async function abrirModalVer(pResumen) {
     setModalVer({ open: true, loading: true, pedido: null });
@@ -502,7 +499,7 @@ export default function PedidosPage() {
         pedido: { ...p, items },
       });
     } catch (err) {
-      Swal.fire("", "No se pudo cargar el resumen del pedido", "error");
+      toast.error("No se pudo cargar el resumen del pedido");
       setModalVer({ open: false, loading: false, pedido: null });
     }
   }
@@ -528,12 +525,22 @@ export default function PedidosPage() {
 
     try {
       await pedidoService.delete(p.id_pedido);
-      Swal.fire("", "Pedido eliminado", "success");
+      toast.success("Pedido eliminado");
       await cargarStockDelDia();
       await loadData();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", getAxiosMessage(err), "error");
+      toast.error(getAxiosMessage(err));
+    }
+  }
+
+  async function handleCobrarRapido(p, metodo) {
+    try {
+      await pedidoService.updatePagoEstado(p.id_pedido, metodo);
+      toast.success(`Pedido #${p.num_pedido} cobrado en ${metodo}`);
+      await loadData();
+    } catch (err) {
+      toast.error(getAxiosMessage(err));
     }
   }
 
@@ -935,12 +942,8 @@ export default function PedidosPage() {
                                   )?.cantidad ?? 0;
 
                                   if (restante <= 0 || actual + 1 > restante) {
-                                    Swal.fire(
-                                      "Sin stock suficiente",
-                                      `Solo hay ${restante} unidad(es) disponible(s) de ${item.nombre}.`,
-                                      "warning"
-                                    );
-                                    return prev; // no cambiamos nada
+                                    toast.warning(`Sin stock suficiente — solo hay ${restante} unidad(es) de ${item.nombre}.`);
+                                    return prev;
                                   }
                                   return {
                                   ...prev,
@@ -1041,66 +1044,120 @@ export default function PedidosPage() {
               <p className="text-center text-muted my-4">
                 <i className="bi bi-inbox me-2"></i>No hay pedidos registrados
               </p>
-            ) : (
-              <div className="table-responsive">
-                <Table responsive hover className="align-middle table-pedidos-listado tabla-responsive-cards">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Tipo</th>
-                      <th>Mesa</th>
-                      <th>Total</th>
-                      <th>Estado Pedido</th>
-                      <th>Pago</th>
-                      <th>Método</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pedidos.map((p) => (
-                      <tr key={p.id_pedido}>
-                        <td data-label="#" className="fw-bold">{p.num_pedido}</td>
-                        <td data-label="Tipo">{p.tipo_pedido}</td>
-                        <td data-label="Mesa">{p.num_mesa ?? "-"}</td>
-                        <td data-label="Total" className="fw-bold"><Money value={p.total} /></td>
-                        <td data-label="Estado Pedido">
-                          <EstadoBadge estado={p.estado_pedido} />
-                        </td>
-                        <td data-label="Pago">
-                          <EstadoBadge estado={p.estado_pago} />
-                        </td>
-                        <td data-label="Método">{p.metodo_pago ?? "-"}</td>
-                        <td data-label="Acciones" className="text-nowrap celda-acciones">
-                          <IconButton
-                            icon="bi-eye"
-                            variant="outline-secondary"
-                            className="me-2"
-                            title="Ver"
-                            onClick={() => abrirModalVer(p)}
-                          />
-                          <IconButton
-                            icon="bi-pencil-square"
-                            variant="outline-primary"
-                            className="me-2 btn-edit-pedido"
-                            title="Editar"
-                            onClick={() => abrirModalEditar(p)}
-                            disabled={p.estado_pago === "PAGADO"}
-                          />
-                          <IconButton
-                            icon="bi-trash"
-                            variant="outline-danger"
-                            className="btn-delete-pedido"
-                            title="Eliminar"
-                            onClick={() => handleEliminarPedido(p)}
-                            disabled={p.estado_pago === "PAGADO"}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            )}
+            ) : (() => {
+              const totalPages = Math.ceil(pedidos.length / PAGE_SIZE);
+              const pagina = pedidos.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+              return (
+                <>
+                  <div className="table-responsive">
+                    <Table responsive hover className="align-middle table-pedidos-listado tabla-responsive-cards">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Tipo</th>
+                          <th>Mesa</th>
+                          <th>Total</th>
+                          <th>Estado Pedido</th>
+                          <th>Pago</th>
+                          <th>Método</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagina.map((p) => (
+                          <tr key={p.id_pedido}>
+                            <td data-label="#" className="fw-bold">{p.num_pedido}</td>
+                            <td data-label="Tipo">{p.tipo_pedido}</td>
+                            <td data-label="Mesa">{p.num_mesa ?? "-"}</td>
+                            <td data-label="Total" className="fw-bold"><Money value={p.total} /></td>
+                            <td data-label="Estado Pedido">
+                              <EstadoBadge estado={p.estado_pedido} />
+                            </td>
+                            <td data-label="Pago">
+                              <EstadoBadge estado={p.estado_pago} />
+                            </td>
+                            <td data-label="Método">{p.metodo_pago ?? "-"}</td>
+                            <td data-label="Acciones" className="text-nowrap celda-acciones">
+                              {p.estado_pago === "SIN_PAGAR" && (
+                                <DropdownButton
+                                  size="sm"
+                                  variant="success"
+                                  title={<><i className="bi bi-cash-coin me-1" />Cobrar</>}
+                                  className="d-inline-block me-2"
+                                >
+                                  <Dropdown.Item onClick={() => handleCobrarRapido(p, "EFECTIVO")}>
+                                    <i className="bi bi-cash me-2 text-success" />Efectivo
+                                  </Dropdown.Item>
+                                  <Dropdown.Item onClick={() => handleCobrarRapido(p, "QR")}>
+                                    <i className="bi bi-qr-code me-2 text-primary" />QR
+                                  </Dropdown.Item>
+                                </DropdownButton>
+                              )}
+                              <IconButton
+                                icon="bi-eye"
+                                variant="outline-secondary"
+                                className="me-1"
+                                title="Ver"
+                                onClick={() => abrirModalVer(p)}
+                              />
+                              <IconButton
+                                icon="bi-pencil-square"
+                                variant="outline-primary"
+                                className="me-1 btn-edit-pedido"
+                                title="Editar"
+                                onClick={() => abrirModalEditar(p)}
+                                disabled={p.estado_pago === "PAGADO"}
+                              />
+                              <IconButton
+                                icon="bi-trash"
+                                variant="outline-danger"
+                                className="btn-delete-pedido"
+                                title="Eliminar"
+                                onClick={() => handleEliminarPedido(p)}
+                                disabled={p.estado_pago === "PAGADO"}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                      <small className="text-muted">
+                        Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, pedidos.length)} de {pedidos.length} pedidos
+                      </small>
+                      <Pagination size="sm" className="mb-0">
+                        <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
+                        <Pagination.Prev onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} />
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(n => n === 1 || n === totalPages || Math.abs(n - currentPage) <= 1)
+                          .reduce((acc, n, idx, arr) => {
+                            if (idx > 0 && n - arr[idx - 1] > 1) acc.push("...");
+                            acc.push(n);
+                            return acc;
+                          }, [])
+                          .map((item, idx) =>
+                            item === "..." ? (
+                              <Pagination.Ellipsis key={`e-${idx}`} disabled />
+                            ) : (
+                              <Pagination.Item
+                                key={item}
+                                active={item === currentPage}
+                                onClick={() => setCurrentPage(item)}
+                              >
+                                {item}
+                              </Pagination.Item>
+                            )
+                          )}
+                        <Pagination.Next onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} />
+                        <Pagination.Last onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </Card.Body>
         </Card>
       )}
@@ -1292,10 +1349,10 @@ export default function PedidosPage() {
             <Table hover size="sm" className="align-middle">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th className="text-end">Cant.</th>
                   <th>Producto</th>
                   <th>Destino</th>
-                 <th className="text-end">Cant.</th>
+                 
                   <th className="text-end">P. Unit</th>
                   <th className="text-end">Subtotal</th>
                 </tr>
@@ -1303,13 +1360,13 @@ export default function PedidosPage() {
               <tbody>
                 {modalVer.pedido.items.map((it, idx) => (
                   <tr key={it.id_detalle ?? `${it.id_producto}-${idx}`}>
-                    <td>{idx + 1}</td>
+                    <td className="text-end">{Number(it.cantidad).toFixed(0)}</td>
+
                     <td>
                      <div className="fw-semibold">{it.nombre}</div>
                       {it.notas ? <div className="small text-muted">Notas: {it.notas}</div> : null}
                     </td>
                     <td>{it.destino ?? (modalVer.pedido.tipo_pedido === "LLEVAR" ? "LLEVAR" : "MESA")}</td>
-                    <td className="text-end">{Number(it.cantidad).toFixed(0)}</td>
                     <td className="text-end">{Number(it.precio_unitario).toFixed(2)} Bs</td>
                     <td className="text-end">
                       {(Number(it.precio_unitario) * Number(it.cantidad)).toFixed(2)} Bs

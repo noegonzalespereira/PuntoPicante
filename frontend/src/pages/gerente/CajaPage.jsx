@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Container, Row, Col, Card, Button, InputGroup, FormControl, Spinner, Table, Form, Badge } from "react-bootstrap";
 import { BsCalendar, BsFillLockFill, BsFillUnlockFill, BsSearch, BsPersonCircle, BsCashStack, BsGraphUp } from "react-icons/bs"; 
 import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import "../../styles/CajaPage.css";
 import PageHeader from "../../components/molecules/PageHeader";
 
@@ -44,7 +45,7 @@ export default function CajaPage() {
       await loadHistorial();
     } catch (err) {
       console.error("Error cargando datos:", err);
-      Swal.fire("Error", "Error inicial al cargar la página.", "error");
+      toast.error("Error inicial al cargar la página.");
     } finally {
       setLoading(false);
     }
@@ -56,16 +57,16 @@ export default function CajaPage() {
 
   const handleApertura = async () => {
     if (!montoApertura || Number(montoApertura) <= 0) {
-      Swal.fire("Advertencia", "Ingrese un monto inicial de apertura válido.", "warning");
+      toast.warning("Ingrese un monto inicial de apertura válido.");
       return;
     }
     try {
       await cajaService.abrirCaja(montoApertura);
-      Swal.fire("Éxito", "Caja abierta correctamente", "success");
+      toast.success("Caja abierta correctamente");
       setMontoApertura("");
       await loadData();
     } catch (err) {
-      Swal.fire("Error", err?.response?.data?.message || "Error al abrir caja", "error");
+      toast.error(err?.response?.data?.message || "Error al abrir caja");
     }
   };
 
@@ -89,11 +90,11 @@ export default function CajaPage() {
     if (monto) {
       try {
         await cajaService.cerrarCaja(caja.id_caja, monto);
-        Swal.fire("Éxito", "Caja cerrada y registrada con éxito.", "success");
+        toast.success("Caja cerrada y registrada con éxito.");
         setCaja(null);
         await loadData();
       } catch (err) {
-        Swal.fire("Error", err?.response?.data?.message || "Error al cerrar caja", "error");
+        toast.error(err?.response?.data?.message || "Error al cerrar caja");
       }
     }
   };
