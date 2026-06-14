@@ -209,12 +209,12 @@ export class PedidosService {
       const hoy = this.ymd();
       const inicioDia = new Date(`${hoy}T00:00:00`);
       const finDia = new Date(`${hoy}T23:59:59`);
-      const { max } = await qr.manager
+      const maxRow = await qr.manager
         .createQueryBuilder(Pedido, 'p')
         .select('COALESCE(MAX(p.num_pedido), 0)', 'max')
         .where('p.created_at BETWEEN :ini AND :fin', { ini: inicioDia, fin: finDia })
         .getRawOne<{ max: string }>();
-      const num_pedido = Number(max) + 1;
+      const num_pedido = Number(maxRow?.max ?? 0) + 1;
 
       const pedido = await qr.manager.save(Pedido, {
         num_pedido,

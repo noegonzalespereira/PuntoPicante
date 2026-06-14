@@ -20,6 +20,12 @@ export const stockService = {
     const { data } = await api.post("/inventario/ingreso-bebida", payload);
     return data;
   },
+
+  // Registrar ingreso de stock de productos EXTRA (bolos, postres)
+  async ingresoExtra(payload) {
+    const { data } = await api.post("/inventario/ingreso-bebida", payload);
+    return data;
+  },
   async getDesgloseStock(fecha) {
   const params = {};
   if (fecha) params.fecha = fecha;

@@ -167,3 +167,61 @@
     padding: 10px 20px;
     border-radius: 8px;
 }
+
+/* ---------------------------------- */
+/* RESPONSIVIDAD MÓVIL                */
+/* ---------------------------------- */
+@media (max-width: 768px) {
+
+    /* Pestañas: scroll horizontal en vez de justify */
+    .nav-recetas {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .nav-recetas::-webkit-scrollbar { display: none; }
+    .nav-recetas .nav-link {
+        padding: 10px 14px;
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+
+    /* Menos padding en el contenido de cada pestaña */
+    .stock-card-content .card-body {
+        padding: 15px;
+    }
+    .card-tabs-container {
+        padding: 0 !important;
+    }
+
+    /* Títulos de sección más pequeños */
+    .titulo-seccion-card {
+        font-size: 1rem;
+    }
+
+    /* KPI values */
+    .kpi-value {
+        font-size: 1.3rem !important;
+    }
+
+    /* Botones al 100% en móvil */
+    .btn-guardar, .btn-merma, .btn-bebida {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Apertura: nombre del plato + input en fila */
+    .plato-apertura-card .card-body {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .plato-apertura-card .card-body span {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

@@ -97,12 +97,18 @@ export default function StockPage() {
     const [activeTab, setActiveTab] = useState("disponibilidad");
     const [fecha_disponibilidad, setFecha_Disponibilidad] = useState(hoyLocal);
     const [fecha_apertura, setFecha_Apertura] = useState(hoyLocal);
-    const [data, setData] = useState({ platos: [], bebidas: [] });
+    const [data, setData] = useState({ platos: [], bebidas: [], extras: [] });
     const [resumen, setResumen] = useState({ platos: 0, bebidas: 0, vendidos: 0 });
     const [platos, setPlatos] = useState([]);
     const [cantidades, setCantidades] = useState({});   // unidades a AÑADIR (incremental)
     const [infoPlatos, setInfoPlatos] = useState({});   // { [id]: { stock_inicial, disponible, vendido, merma } }
     const [bebidasBase, setBebidasBase] = useState([]);
+    const [extrasBase, setExtrasBase] = useState([]);
+
+    // Modal Extras
+    const [showModalExtra, setShowModalExtra] = useState(false);
+    const [extraSeleccionado, setExtraSeleccionado] = useState("");
+    const [cantidadExtra, setCantidadExtra] = useState("");
     const [mermas, setMermas] = useState([]);
     const [loadingGeneral, setLoadingGeneral] = useState(false);
 
@@ -148,7 +154,7 @@ export default function StockPage() {
             const totalBebidas = info.bebidas.reduce((acc, b) => acc + (b.stock ?? 0), 0);
             const vendidos = info.platos.reduce((acc, p) => acc + (p.vendido ?? 0), 0);
             
-            setData(info);
+            setData({ platos: info.platos || [], bebidas: info.bebidas || [], extras: info.extras || [] });
             setResumen({ platos: totalPlatos, bebidas: totalBebidas, vendidos });
         } catch (error) { console.error("Error al cargar disponibilidad:", error); }
         finally { setLoadingGeneral(false); }
@@ -161,11 +167,39 @@ export default function StockPage() {
         } catch (error) { console.error("Error al cargar productos base:", error); }
     };
 
-    const cargarBebidasBase = async () => { 
+    const cargarBebidasBase = async () => {
         try {
             const { data } = await productoService.getAll({ tipo: "BEBIDA", activo: 1 });
             setBebidasBase(data || []);
         } catch (error) { console.error("Error al cargar bebidas base:", error); }
+    };
+
+    const cargarExtrasBase = async () => {
+        try {
+            const { data } = await productoService.getAll({ tipo: "EXTRA", activo: 1 });
+            setExtrasBase(data || []);
+        } catch (error) { console.error("Error al cargar extras base:", error); }
+    };
+
+    const registrarIngresoExtra = async () => {
+        try {
+            if (!extraSeleccionado || Number(cantidadExtra) <= 0) {
+                toast.warning("Selecciona un producto extra y una cantidad válida");
+                return;
+            }
+            await stockService.ingresoExtra({
+                id_producto: Number(extraSeleccionado),
+                cantidad: Number(cantidadExtra),
+            });
+            toast.success("Ingreso de extra registrado correctamente");
+            setShowModalExtra(false);
+            setExtraSeleccionado("");
+            setCantidadExtra("");
+            cargarDisponibilidad();
+            cargarExtrasBase();
+        } catch (error) {
+            toast.error("Error al registrar ingreso extra");
+        }
     };
 
     const cargarAperturaExistente = async () => {
@@ -266,6 +300,7 @@ export default function StockPage() {
     useEffect(() => { cargarDisponibilidad(); }, [fecha_disponibilidad, activeTab, cargarDisponibilidad]); 
     useEffect(() => { if (activeTab === "apertura") { cargarPlatosBase(); cargarAperturaExistente(); } }, [activeTab, fecha_apertura]);
     useEffect(() => { if (activeTab === "bebidas") { cargarBebidasBase(); } }, [activeTab]);
+    useEffect(() => { if (activeTab === "extras") { cargarExtrasBase(); cargarDisponibilidad(); } }, [activeTab]);
     useEffect(() => { if (activeTab === "mermas") { cargarMermas(); } }, [activeTab]);
 
 
@@ -505,6 +540,57 @@ export default function StockPage() {
         </Card>
     );
 
+    const TabExtras = () => (
+        <Card className="stock-card-content">
+            <Card.Body>
+                <h4 className="titulo-seccion-card fw-bold">
+                    <i className="bi bi-bag-heart me-2"></i> Ingreso de Stock — Extras (Bolos / Postres)
+                </h4>
+                <p className="text-muted">
+                    Registra aquí las unidades de bolos, postres u otros extras que ingresas para vender.
+                    El stock es global (no diario). Las ventas se registran automáticamente cuando se cobra el pedido.
+                </p>
+                <Button className="btn-bebida mb-4" onClick={() => setShowModalExtra(true)}>
+                    <BsBagPlus className="me-2" /> Ingresar Unidades Extra
+                </Button>
+
+                <h5 className="mt-4 mb-3 fw-bold text-dark-gray"><BsTable className="me-2" /> Extras Registrados</h5>
+                <Table responsive hover size="sm" className="tabla-stock tabla-responsive-cards">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Total Ingresado</th>
+                            <th>Vendido</th>
+                            <th>Disponible</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {extrasBase.length > 0 ? extrasBase.map((e) => {
+                            const inv = data.extras?.find((x) => x.id_producto === e.id_producto);
+                            const disponible = inv?.stock ?? 0;
+                            const ingresado = inv?.stock_inicial ?? 0;
+                            const vendido = inv?.vendido ?? 0;
+                            return (
+                                <tr key={e.id_producto}>
+                                    <td data-label="Producto">{e.nombre}</td>
+                                    <td data-label="Total Ingresado" className="text-center text-marron">{ingresado}</td>
+                                    <td data-label="Vendido" className="text-center text-primary">{vendido}</td>
+                                    <td data-label="Disponible" className="text-center fw-bold">
+                                        <Badge bg={disponible > 0 ? 'warning' : 'danger'} text={disponible > 0 ? 'dark' : undefined}>
+                                            {disponible}
+                                        </Badge>
+                                    </td>
+                                </tr>
+                            );
+                        }) : (
+                            <tr><td colSpan="4" className="text-center text-muted">No hay productos de tipo EXTRA activos.</td></tr>
+                        )}
+                    </tbody>
+                </Table>
+            </Card.Body>
+        </Card>
+    );
+
     // ==========================================================
     // 5. ESTRUCTURA PRINCIPAL (JSX)
     // ==========================================================
@@ -552,7 +638,6 @@ export default function StockPage() {
                         onSelect={(k) => setActiveTab(k)}
                         id="stock-tab-system"
                         className="nav-recetas mb-3"
-                        justify
                     >
                         <Tab eventKey="disponibilidad" title={<><BsEye className='me-2'/> Disponibilidad</>}>
                             {TabDisponibilidad()}
@@ -563,6 +648,9 @@ export default function StockPage() {
                         <Tab eventKey="bebidas" title={<><BsCashStack className='me-2'/> Ingreso de Bebidas</>}>
                             {TabBebidas()}
                         </Tab>
+                        <Tab eventKey="extras" title={<><i className="bi bi-bag-heart me-2"/>Extras</>}>
+                            {TabExtras()}
+                        </Tab>
                         <Tab eventKey="mermas" title={<><BsFillTrashFill className='me-2'/> Mermas</>}>
                             {TabMermas()}
                         </Tab>
@@ -571,10 +659,36 @@ export default function StockPage() {
             </Container>
 
             {/* MODALES */}
-            <BebidaModal 
+            <BebidaModal
                 show={showModalBebida} handleClose={() => setShowModalBebida(false)} bebidasBase={bebidasBase}
                 cantidad={cantidadBebida} setCantidad={setCantidadBebida} bebida={bebidaSeleccionada} setBebida={setBebidaSeleccionada} onSave={registrarIngresoBebida}
             />
+
+            {/* Modal Extras */}
+            <Modal show={showModalExtra} onHide={() => setShowModalExtra(false)} centered>
+                <Modal.Header closeButton className="modal-header-custom">
+                    <Modal.Title className="fw-bold"><BsBagPlus className="me-2" /> Registrar Ingreso de Extra</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Producto Extra (bolo, postre…)</Form.Label>
+                        <Form.Select value={extraSeleccionado} onChange={(e) => setExtraSeleccionado(e.target.value)}>
+                            <option value="">Seleccionar</option>
+                            {extrasBase.map((e) => (
+                                <option key={e.id_producto} value={e.id_producto}>{e.nombre}</option>
+                            ))}
+                        </Form.Select>
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Cantidad a ingresar</Form.Label>
+                        <Form.Control type="number" min="1" value={cantidadExtra} onChange={(e) => setCantidadExtra(e.target.value)} placeholder="0" />
+                    </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowModalExtra(false)}>Cancelar</Button>
+                    <Button variant="warning" onClick={registrarIngresoExtra}><i className="bi bi-save me-2"></i> Guardar Ingreso</Button>
+                </Modal.Footer>
+            </Modal>
             <MermaModal 
                 show={showModalMerma} handleClose={() => setShowModalMerma(false)} data={data} mermaState={mermaState}
                 setMermaState={setMermaState} onSave={registrarMerma}
