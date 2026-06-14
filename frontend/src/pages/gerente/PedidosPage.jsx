@@ -67,14 +67,7 @@ export default function PedidosPage() {
   const [modalEditar, setModalEditar] = useState({ open: false, loading: false, pedido: null });
   const [modalVer, setModalVer] = useState({ open: false, loading: false, pedido: null });
 
-    const getStockRestante = (id_producto) => {
-    const s =
-      stockDisponible.platos.find((x) => x.id_producto === id_producto) ||
-      stockDisponible.bebidas.find((x) => x.id_producto === id_producto) ||
-      stockDisponible.extras.find((x) => x.id_producto === id_producto);
-
-    return Number(s?.stock ?? 0); // si no hay registro, asumimos 0
-  };
+  const getStockRestante = (id_producto) => Number(stockMap?.get(id_producto) ?? 0);
 
   const [pedidoActual, setPedidoActual] = useState({
     tipo_pedido: "MESA",
@@ -127,16 +120,21 @@ export default function PedidosPage() {
   useEffect(() => { loadData(); }, []);
 
   const categorias = ["Todos", "PLATO", "BEBIDA", "EXTRA"];
-  const productosFiltrados = productos.filter((p) => {
+
+  const stockMap = useMemo(() => {
+    const map = new Map();
+    for (const x of [...stockDisponible.platos, ...stockDisponible.bebidas, ...stockDisponible.extras]) {
+      map.set(x.id_producto, x.stock);
+    }
+    return map;
+  }, [stockDisponible]);
+
+  const productosFiltrados = useMemo(() => productos.filter((p) => {
     const cat = categoriaActiva === "Todos" || p.tipo === categoriaActiva;
     const search = p.nombre.toLowerCase().includes(searchProducto.toLowerCase());
-    const stockEntry =
-      stockDisponible.platos.find((x) => x.id_producto === p.id_producto) ||
-      stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto) ||
-      stockDisponible.extras.find((x) => x.id_producto === p.id_producto);
-    const tieneStock = stockEntry ? stockEntry.stock > 0 : false;
+    const tieneStock = (stockMap.get(p.id_producto) ?? 0) > 0;
     return cat && search && tieneStock;
-  });
+  }), [productos, categoriaActiva, searchProducto, stockMap]);
 
 
   function agregarProducto(producto) {
@@ -768,11 +766,7 @@ export default function PedidosPage() {
                             {Number(p.precio).toFixed(2)} Bs
                           </Card.Text>
                           {(() => {
-                            const s =
-                              stockDisponible.platos.find((x) => x.id_producto === p.id_producto) ||
-                              stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto) ||
-                              stockDisponible.extras.find((x) => x.id_producto === p.id_producto);
-                            const restante = s?.stock ?? 0;
+                            const restante = stockMap.get(p.id_producto) ?? 0;
                             const texto =
                               restante <= 0
                                 ? "Sin stock"
@@ -991,31 +985,45 @@ export default function PedidosPage() {
                           </div>
                         </div>
 
-                        {(item.notas || pedidoActual.tipo_pedido === "MIXTO") && (
-                          <div className="d-flex justify-content-between align-items-center mt-2 small">
-                            <span className="text-muted">
-                              {item.notas && `Notas: ${item.notas}`}
-                            </span>
-                            {pedidoActual.tipo_pedido === "MIXTO" && (
-                              <Form.Select
-                                size="sm"
-                                className="w-auto input-destino-mix"
-                                value={item.destino}
-                                onChange={(e) =>
-                                  setPedidoActual((prev) => ({
-                                    ...prev,
-                                    items: prev.items.map((i) =>
-                                      i.id_producto === item.id_producto
-                                        ? { ...i, destino: e.target.value }
-                                        : i
-                                    ),
-                                  }))
-                                }
-                              >
-                                <option value="MESA">MESA</option>
-                                <option value="LLEVAR">LLEVAR</option>
-                              </Form.Select>
-                            )}
+                        <div className="mt-2">
+                          <Form.Control
+                            size="sm"
+                            type="text"
+                            placeholder="Notas (opcional)"
+                            value={item.notas || ""}
+                            onChange={(e) =>
+                              setPedidoActual((prev) => ({
+                                ...prev,
+                                items: prev.items.map((i) =>
+                                  i.id_producto === item.id_producto
+                                    ? { ...i, notas: e.target.value }
+                                    : i
+                                ),
+                              }))
+                            }
+                          />
+                        </div>
+
+                        {pedidoActual.tipo_pedido === "MIXTO" && (
+                          <div className="d-flex justify-content-end mt-1 small">
+                            <Form.Select
+                              size="sm"
+                              className="w-auto input-destino-mix"
+                              value={item.destino}
+                              onChange={(e) =>
+                                setPedidoActual((prev) => ({
+                                  ...prev,
+                                  items: prev.items.map((i) =>
+                                    i.id_producto === item.id_producto
+                                      ? { ...i, destino: e.target.value }
+                                      : i
+                                  ),
+                                }))
+                              }
+                            >
+                              <option value="MESA">MESA</option>
+                              <option value="LLEVAR">LLEVAR</option>
+                            </Form.Select>
                           </div>
                         )}
                         <hr className="my-2" />

@@ -103,16 +103,21 @@ export default function PedidosPage() {
   useEffect(() => { loadData(); }, []);
 
   const categorias = ["Todos", "PLATO", "BEBIDA", "EXTRA"];
-  const productosFiltrados = productos.filter((p) => {
+
+  const stockMap = useMemo(() => {
+    const map = new Map();
+    for (const x of [...stockDisponible.platos, ...stockDisponible.bebidas, ...stockDisponible.extras]) {
+      map.set(x.id_producto, x.stock);
+    }
+    return map;
+  }, [stockDisponible]);
+
+  const productosFiltrados = useMemo(() => productos.filter((p) => {
     const cat = categoriaActiva === "Todos" || p.tipo === categoriaActiva;
     const search = p.nombre.toLowerCase().includes(searchProducto.toLowerCase());
-    const stockEntry =
-      stockDisponible.platos.find((x) => x.id_producto === p.id_producto) ||
-      stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto) ||
-      stockDisponible.extras.find((x) => x.id_producto === p.id_producto);
-    const tieneStock = stockEntry ? stockEntry.stock > 0 : false;
+    const tieneStock = (stockMap.get(p.id_producto) ?? 0) > 0;
     return cat && search && tieneStock;
-  });
+  }), [productos, categoriaActiva, searchProducto, stockMap]);
 
   
   function agregarProducto(producto) {
@@ -663,11 +668,7 @@ export default function PedidosPage() {
                             {Number(p.precio).toFixed(2)} Bs
                           </Card.Text>
                           {(() => {
-                            const s =
-                              stockDisponible.platos.find((x) => x.id_producto === p.id_producto) ||
-                              stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto) ||
-                              stockDisponible.extras.find((x) => x.id_producto === p.id_producto);
-                            const restante = s?.stock ?? 0;
+                            const restante = stockMap.get(p.id_producto) ?? 0;
                             const texto =
                               restante <= 0
                                 ? "Sin stock"
