@@ -204,16 +204,11 @@ export class PedidosService {
           throw new BadRequestException('En pedidos MIXTOS, cada ítem debe tener destino (MESA o LLEVAR)');
       }
 
-      /*Generación num_pedido del dia — dentro de la transacción con lock para evitar duplicados */
-      await qr.query('SELECT pg_advisory_xact_lock(202506131)');
-      const hoy = this.ymd();
-      const inicioDia = new Date(`${hoy}T00:00:00`);
-      const finDia = new Date(`${hoy}T23:59:59`);
-      const maxRow = await qr.manager
-        .createQueryBuilder(Pedido, 'p')
-        .select('COALESCE(MAX(p.num_pedido), 0)', 'max')
-        .where('p.created_at BETWEEN :ini AND :fin', { ini: inicioDia, fin: finDia })
-        .getRawOne<{ max: string }>();
+      /* num_pedido correlativo dentro de la caja actual — sin rangos de fecha */
+      const [maxRow] = await qr.query(
+        `SELECT COALESCE(MAX(num_pedido), 0) AS max FROM pedido WHERE id_caja = $1`,
+        [dto.id_caja],
+      );
       const num_pedido = Number(maxRow?.max ?? 0) + 1;
 
       const pedido = await qr.manager.save(Pedido, {

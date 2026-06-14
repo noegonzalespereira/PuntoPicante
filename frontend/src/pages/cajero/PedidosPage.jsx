@@ -50,7 +50,7 @@ export default function PedidosPage() {
   const [searchProducto, setSearchProducto] = useState("");
   const [loading, setLoading] = useState(false);
   const [cajaAbierta, setCajaAbierta] = useState(null);
-  const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [] });
+  const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [], extras: [] });
   const [appendContext, setAppendContext] = useState(null);
   const [modalEditar, setModalEditar] = useState({ open: false, loading: false, pedido: null });
 
@@ -73,6 +73,7 @@ export default function PedidosPage() {
       setStockDisponible({
         platos: data.platos || [],
         bebidas: data.bebidas || [],
+        extras: data.extras || [],
       });
     } catch (error) {
       console.error("Error al cargar stock del día:", error);
@@ -101,12 +102,16 @@ export default function PedidosPage() {
 
   useEffect(() => { loadData(); }, []);
 
-s
-  const categorias = ["Todos", "PLATO", "BEBIDA"];
+  const categorias = ["Todos", "PLATO", "BEBIDA", "EXTRA"];
   const productosFiltrados = productos.filter((p) => {
     const cat = categoriaActiva === "Todos" || p.tipo === categoriaActiva;
     const search = p.nombre.toLowerCase().includes(searchProducto.toLowerCase());
-    return cat && search;
+    const stockEntry =
+      stockDisponible.platos.find((x) => x.id_producto === p.id_producto) ||
+      stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto) ||
+      stockDisponible.extras.find((x) => x.id_producto === p.id_producto);
+    const tieneStock = stockEntry ? stockEntry.stock > 0 : false;
+    return cat && search && tieneStock;
   });
 
   
@@ -660,7 +665,8 @@ s
                           {(() => {
                             const s =
                               stockDisponible.platos.find((x) => x.id_producto === p.id_producto) ||
-                              stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto);
+                              stockDisponible.bebidas.find((x) => x.id_producto === p.id_producto) ||
+                              stockDisponible.extras.find((x) => x.id_producto === p.id_producto);
                             const restante = s?.stock ?? 0;
                             const texto =
                               restante <= 0
