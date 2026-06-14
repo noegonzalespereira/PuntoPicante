@@ -382,6 +382,34 @@ export default function StockPage() {
                             </tbody>
                         </Table>
                     </Col>
+
+                    {/* Extras */}
+                    {data.extras?.length > 0 && (
+                        <Col lg={6}>
+                            <h5 className="mt-3 fw-bold" style={{ color: '#b8860b' }}>
+                                <i className="bi bi-bag-heart me-2" /> Extras — Bolos / Postres (Stock Global)
+                            </h5>
+                            <Table responsive className="tabla-stock tabla-responsive-cards">
+                                <thead>
+                                    <tr><th>Producto</th><th>Ingresado</th><th>Vendido</th><th>Disponible</th></tr>
+                                </thead>
+                                <tbody>
+                                    {data.extras.map((e) => (
+                                        <tr key={e.id_producto}>
+                                            <td data-label="Producto">{e.nombre}</td>
+                                            <td data-label="Ingresado" className="text-center text-marron">{e.stock_inicial ?? 0}</td>
+                                            <td data-label="Vendido" className="text-center text-primary">{e.vendido ?? 0}</td>
+                                            <td data-label="Disponible" className="text-center fw-bold">
+                                                <Badge bg={(e.stock ?? 0) > 0 ? 'warning' : 'danger'} text={(e.stock ?? 0) > 0 ? 'dark' : undefined}>
+                                                    {e.stock ?? 0}
+                                                </Badge>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </Col>
+                    )}
                 </Row>
             </Card.Body>
         </Card>

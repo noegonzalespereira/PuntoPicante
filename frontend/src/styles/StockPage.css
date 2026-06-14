@@ -5,223 +5,186 @@
   --amarillo: #ffca28;
   --rojo: #b71c1c;
   --crema: #faf7f2;
-  --marron: #4a2b13; /* Café Oscuro */
-  --cafe-claro: #f4eee9; /* Fondo de cards/headers de tabla */
-  --rojo-suave: #f9eaea; /* Fondo para merma/danger */
+  --marron: #4a2b13;
+  --cafe-claro: #f4eee9;
+  --rojo-suave: #f9eaea;
   --gris-texto: #6c757d;
 }
 
 /* ---------------------------------- */
-/* BASE Y HEADER CON GRADIENTE */
+/* BASE                               */
 /* ---------------------------------- */
 .stock-page {
-    background-color: var(--crema);
-    min-height: 100vh;
-}
-.modulo-header-stock {
-    /* Gradiente de Rojo a Verde */
-    background: linear-gradient(to right, var(--rojo) 0%, var(--verde) 100%);
-    color: white;
-    padding: 25px 30px;
-    border-radius: 0 0 15px 15px; 
-}
-.page-title-stock {
-    color: white;
-    font-weight: 800;
-    font-size: 2.2rem;
-    margin-bottom: 5px;
-}
-.page-subtitle-stock {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-size: 1rem;
+  background-color: var(--crema);
+  min-height: 100vh;
+  overflow-x: hidden; /* evita scroll horizontal en toda la página */
 }
 
 /* ---------------------------------- */
-/* KPI CARDS (RESUMEN SUPERIOR) */
+/* KPI CARDS                          */
 /* ---------------------------------- */
 .cards-resumen .card-kpi {
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s;
-    border: none;
-    height: 100%;
-    padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  border: none;
+  height: 100%;
+  padding: 15px;
 }
 .cards-resumen .kpi-label {
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: #6c757d;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #6c757d;
 }
 .cards-resumen .kpi-value {
-    font-weight: 800;
-    font-size: 1.6rem;
-    color: var(--marron); 
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--marron);
 }
-.kpi-verde { border-left: 5px solid var(--verde) !important; background-color: #e8f5e9; }
-.kpi-amarillo { border-left: 5px solid var(--amarillo) !important; background-color: #fffde6; }
-.kpi-rojo { border-left: 5px solid var(--rojo) !important; background-color: var(--rojo-suave); }
-
+.kpi-verde   { border-left: 5px solid var(--verde)   !important; background-color: #e8f5e9; }
+.kpi-amarillo{ border-left: 5px solid var(--amarillo) !important; background-color: #fffde6; }
+.kpi-rojo    { border-left: 5px solid var(--rojo)     !important; background-color: var(--rojo-suave); }
 
 /* ---------------------------------- */
-/* NAVEGACIÓN Y CONTENIDO DE PESTAÑAS */
+/* NAVEGACIÓN DE PESTAÑAS             */
 /* ---------------------------------- */
 .card-tabs-container {
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    background: white;
-    padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  background: white;
+  padding: 0;
+  overflow: hidden; /* recorta cualquier desbordamiento del nav */
 }
+
+/* El nav de las pestañas: deslizable en cualquier ancho */
+.nav-recetas {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.nav-recetas::-webkit-scrollbar { display: none; }
+
 .nav-recetas .nav-link {
-    color: var(--marron);
-    font-weight: 600;
-    padding: 15px 20px;
-    border: none;
-    border-bottom: 3px solid transparent;
+  color: var(--marron);
+  font-weight: 600;
+  padding: 14px 18px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap; /* cada tab en una sola línea */
 }
 .nav-recetas .nav-link.active {
-    color: var(--marron) !important;
-    background-color: var(--cafe-claro) !important;
-    border-bottom: 3px solid var(--marron) !important;
+  color: var(--marron) !important;
+  background-color: var(--cafe-claro) !important;
+  border-bottom: 3px solid var(--marron) !important;
 }
+
+/* ---------------------------------- */
+/* CONTENIDO DE CADA PESTAÑA          */
+/* ---------------------------------- */
 .stock-card-content {
-    border: 1px solid var(--cafe-claro);
-    border-top: none;
-    border-radius: 0 0 12px 12px;
-    background: white;
+  border: 1px solid var(--cafe-claro);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: white;
 }
 .stock-card-content .card-body {
-    padding: 30px;
+  padding: 24px;
 }
 .titulo-seccion-card {
-    color: var(--marron);
-    font-size: 1.3rem;
+  color: var(--marron);
+  font-size: 1.2rem;
 }
 
 /* ---------------------------------- */
-/* TABLAS DE STOCK (Disponibilidad y Mermas) */
+/* TABLAS (solo estilos visuales,     */
+/* NO tocar display ni padding para   */
+/* no pisar tabla-responsive-cards)   */
 /* ---------------------------------- */
-.tabla-stock {
-    /* Asegura que los bordes internos sean limpios */
-    border-collapse: separate;
-    border-spacing: 0 0px;
-}
 .tabla-stock thead th {
-    background-color: var(--cafe-claro);
-    color: var(--marron);
-    font-weight: 700;
-    border: none; /* Eliminar bordes para un look más moderno */
-    padding: 12px 10px;
-}
-.tabla-stock tbody td {
-    vertical-align: middle;
-    color: #495057;
-    padding: 8px 10px;
+  background-color: var(--cafe-claro);
+  color: var(--marron);
+  font-weight: 700;
+  border: none;
 }
 .tabla-stock tbody tr:nth-child(even) {
-    background-color: #fcfcfc;
+  background-color: #fcfcfc;
 }
 .tabla-stock .badge {
-    font-weight: 700;
-    min-width: 50px;
+  font-weight: 700;
+  min-width: 50px;
 }
 
 /* ---------------------------------- */
-/* PESTAÑA APERTURA (Tarjetas de Cantidad) */
+/* PESTAÑA APERTURA                   */
 /* ---------------------------------- */
 .plato-apertura-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: white;
 }
 .plato-apertura-card .card-body {
-    padding: 10px 15px !important;
+  padding: 10px 15px !important;
 }
 .input-stock-cant {
-    font-weight: 600;
-    width: 80px;
-    text-align: center;
-    border-radius: 6px;
-    /* Ajuste para que se vea como botón */
-    background-color: var(--marron);
-    color: white;
+  font-weight: 600;
+  width: 80px;
+  text-align: center;
+  border-radius: 6px;
+  background-color: var(--marron);
+  color: white;
 }
 .input-stock-cant:disabled {
-    background-color: #6c757d;
-    opacity: 0.8;
+  background-color: #6c757d;
+  opacity: 0.8;
 }
 
+/* ---------------------------------- */
+/* BOTONES                            */
+/* ---------------------------------- */
 .btn-guardar {
-    background-color: var(--verde) !important;
-    border-color: var(--verde) !important;
-    font-weight: 700;
-    padding: 10px 30px;
-    border-radius: 8px;
+  background-color: var(--verde) !important;
+  border-color: var(--verde) !important;
+  font-weight: 700;
+  padding: 10px 30px;
+  border-radius: 8px;
+}
+.btn-merma, .btn-bebida {
+  background-color: var(--rojo) !important;
+  border-color: var(--rojo) !important;
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
 }
 
-/* Botones de merma */
-.btn-merma, .btn-bebida {
-    background-color: var(--rojo) !important;
-    border-color: var(--rojo) !important;
-    color: white;
-    font-weight: 600;
-    padding: 10px 20px;
-    border-radius: 8px;
+/* ---------------------------------- */
+/* MODAL HEADER                       */
+/* ---------------------------------- */
+.modal-header-custom {
+  background-color: var(--cafe-claro);
 }
 
 /* ---------------------------------- */
 /* RESPONSIVIDAD MÓVIL                */
 /* ---------------------------------- */
 @media (max-width: 768px) {
-
-    /* Pestañas: scroll horizontal en vez de justify */
-    .nav-recetas {
-        flex-wrap: nowrap !important;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-    .nav-recetas::-webkit-scrollbar { display: none; }
-    .nav-recetas .nav-link {
-        padding: 10px 14px;
-        font-size: 0.78rem;
-        white-space: nowrap;
-    }
-
-    /* Menos padding en el contenido de cada pestaña */
-    .stock-card-content .card-body {
-        padding: 15px;
-    }
-    .card-tabs-container {
-        padding: 0 !important;
-    }
-
-    /* Títulos de sección más pequeños */
-    .titulo-seccion-card {
-        font-size: 1rem;
-    }
-
-    /* KPI values */
-    .kpi-value {
-        font-size: 1.3rem !important;
-    }
-
-    /* Botones al 100% en móvil */
-    .btn-guardar, .btn-merma, .btn-bebida {
-        width: 100%;
-        text-align: center;
-    }
-
-    /* Apertura: nombre del plato + input en fila */
-    .plato-apertura-card .card-body {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    .plato-apertura-card .card-body span {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+  .stock-card-content .card-body {
+    padding: 14px;
+  }
+  .titulo-seccion-card {
+    font-size: 1rem;
+  }
+  .cards-resumen .kpi-value {
+    font-size: 1.3rem;
+  }
+  .nav-recetas .nav-link {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+  }
+  .btn-guardar,
+  .btn-merma,
+  .btn-bebida {
+    width: 100%;
+    text-align: center;
+  }
 }
