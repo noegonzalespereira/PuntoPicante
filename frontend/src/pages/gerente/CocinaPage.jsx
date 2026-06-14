@@ -110,7 +110,7 @@ const CocinaPage = () => {
     cargarCajaYDatos();
     pollingRef.current = setInterval(() => {
       cargarCajaYDatos();
-    }, 5000);
+    }, 30000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
@@ -340,7 +340,7 @@ const CocinaPage = () => {
                 ? `Pedidos en Preparación (${resumen.pendientes})`
                 : `Pedidos Listos (${resumen.listos})`}
             </h3>
-            <h6 className="text-muted fw-semibold">Actualización automática cada 5 segundos</h6>
+            <h6 className="text-muted fw-semibold">Actualización automática cada 30 segundos</h6>
           </div>
 
           {loading ? (
