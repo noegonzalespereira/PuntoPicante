@@ -7,21 +7,19 @@ import '../../styles/CocinaPage.css';
 import { BsClipboardCheck, BsCheckLg, BsEye } from 'react-icons/bs';
 import PageHeader from "../../components/molecules/PageHeader";
 
-function playNuevoPedidoSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [[880, 0], [660, 0.18]].forEach(([freq, start]) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.35, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + 0.15);
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + start + 0.15);
-    });
-  } catch (_) {}
+function playBeep(ctx) {
+  if (!ctx || ctx.state !== 'running') return;
+  [[880, 0], [660, 0.18]].forEach(([freq, start]) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime + start);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + 0.18);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + start + 0.18);
+  });
 }
 
 const CocinaPage = () => {
@@ -32,6 +30,7 @@ const CocinaPage = () => {
   const [tab, setTab] = useState('PENDIENTE');
   const pollingRef     = useRef(null);
   const prevPendientes = useRef(null);
+  const audioCtxRef    = useRef(null); // AudioContext reutilizable
 
   const cargarCajaYDatos = useCallback(async () => {
     try {
@@ -61,7 +60,7 @@ const CocinaPage = () => {
       const nuevoPendientes = Number(r?.pendientes ?? 0);
 
       if (prevPendientes.current !== null && nuevoPendientes > prevPendientes.current) {
-        playNuevoPedidoSound();
+        playBeep(audioCtxRef.current);
         toast.info(`🍳 Nuevo pedido en cocina (${nuevoPendientes} pendientes)`, { duration: 4000 });
       }
       prevPendientes.current = nuevoPendientes;
@@ -88,11 +87,30 @@ const CocinaPage = () => {
     }
   };
 
+  // Inicializa (o desbloquea) el AudioContext en el primer gesto del usuario.
+  // Los navegadores solo permiten audio después de una interacción humana.
+  useEffect(() => {
+    const unlock = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      } else if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    };
+    document.addEventListener('click',      unlock);
+    document.addEventListener('touchstart', unlock);
+    return () => {
+      document.removeEventListener('click',      unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+  }, []);
+
+  // Polling cada 5 s para detectar pedidos nuevos rápidamente
   useEffect(() => {
     cargarCajaYDatos();
     pollingRef.current = setInterval(() => {
       cargarCajaYDatos();
-    }, 30000);
+    }, 5000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
@@ -322,7 +340,7 @@ const CocinaPage = () => {
                 ? `Pedidos en Preparación (${resumen.pendientes})`
                 : `Pedidos Listos (${resumen.listos})`}
             </h3>
-            <h6 className="text-muted fw-semibold">Actualización automática cada 30 segundos</h6>
+            <h6 className="text-muted fw-semibold">Actualización automática cada 5 segundos</h6>
           </div>
 
           {loading ? (
