@@ -1,19 +1,37 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, Container, Row, Col, Card, Spinner, Badge, Alert } from 'react-bootstrap';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { cocinaService } from '../../services/cocinaService';
 import { cajaService } from '../../services/cajaService';
 import '../../styles/CocinaPage.css';
 import { BsClipboardCheck, BsCheckLg, BsEye } from 'react-icons/bs';
 import PageHeader from "../../components/molecules/PageHeader";
 
+function playNuevoPedidoSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [[880, 0], [660, 0.18]].forEach(([freq, start]) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + 0.15);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + 0.15);
+    });
+  } catch (_) {}
+}
+
 const CocinaPage = () => {
   const [caja, setCaja] = useState(null);
   const [pedidos, setPedidos] = useState([]);
   const [resumen, setResumen] = useState({ pendientes: 0, listos: 0 });
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState('PENDIENTE'); // 'PENDIENTE' | 'LISTO'
-  const pollingRef = useRef(null);
+  const [tab, setTab] = useState('PENDIENTE');
+  const pollingRef     = useRef(null);
+  const prevPendientes = useRef(null);
 
   const cargarCajaYDatos = useCallback(async () => {
     try {
@@ -26,12 +44,12 @@ const CocinaPage = () => {
       if (!cajaAbierta) {
         setPedidos([]);
         setResumen({ pendientes: 0, listos: 0 });
+        prevPendientes.current = null;
         return;
       }
 
       const id_caja = cajaAbierta.id_caja;
 
-      // 2) Pedidos por TAB (día actual = caja abierta)
       const data =
         tab === 'PENDIENTE'
           ? await cocinaService.getPendientes({ id_caja })
@@ -39,15 +57,22 @@ const CocinaPage = () => {
 
       setPedidos(Array.isArray(data) ? data : []);
 
-      // 3) Resumen de ESTA caja
       const r = await cocinaService.getResumen({ id_caja }).catch(() => ({ pendientes: 0, listos: 0 }));
+      const nuevoPendientes = Number(r?.pendientes ?? 0);
+
+      if (prevPendientes.current !== null && nuevoPendientes > prevPendientes.current) {
+        playNuevoPedidoSound();
+        toast.info(`🍳 Nuevo pedido en cocina (${nuevoPendientes} pendientes)`, { duration: 4000 });
+      }
+      prevPendientes.current = nuevoPendientes;
+
       setResumen({
-        pendientes: Number(r?.pendientes ?? 0),
+        pendientes: nuevoPendientes,
         listos: Number(r?.listos ?? 0),
       });
     } catch (error) {
       console.error('Error al cargar datos de cocina:', error);
-      Swal.fire('Error', 'No se pudo cargar la información de cocina.', 'error');
+      toast.error('No se pudo cargar la información de cocina');
     } finally {
       setLoading(false);
     }
@@ -56,11 +81,10 @@ const CocinaPage = () => {
   const marcarItemComoListo = async (id_pedido, id_detalle_pedido) => {
     try {
       await cocinaService.marcarItemDespachado(id_pedido, id_detalle_pedido);
-      Swal.fire('Éxito', 'Plato marcado como listo', 'success');
       await cargarCajaYDatos();
     } catch (error) {
       console.error('Error al marcar el plato como listo:', error);
-      Swal.fire('Error', 'Error al marcar el plato como listo', 'error');
+      toast.error('No se pudo marcar el plato como listo');
     }
   };
 
