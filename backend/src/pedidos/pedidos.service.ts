@@ -188,19 +188,6 @@ export class PedidosService {
     }
 
     
-    /*Generación num_pedido  del dia*/
-
-    const hoy = this.ymd();
-    const inicioDia = new Date(`${hoy}T00:00:00`);
-    const finDia = new Date(`${hoy}T23:59:59`);
-
-    const ultimoPedidoHoy = await this.pedidos.findOne({
-      where: { created_at: Between(inicioDia, finDia) },
-      order: { num_pedido: 'DESC' },
-    });
-
-    const num_pedido = ultimoPedidoHoy ? ultimoPedidoHoy.num_pedido + 1 : 1;
-
     /*Calcular precios y reservar stock*/
 
     const ids = [...new Set(dto.items.map(i => i.id_producto))];
@@ -216,6 +203,18 @@ export class PedidosService {
         if (!it.destino && dto.tipo_pedido === TipoPedido.MIXTO)
           throw new BadRequestException('En pedidos MIXTOS, cada ítem debe tener destino (MESA o LLEVAR)');
       }
+
+      /*Generación num_pedido del dia — dentro de la transacción con lock para evitar duplicados */
+      await qr.query('SELECT pg_advisory_xact_lock(202506131)');
+      const hoy = this.ymd();
+      const inicioDia = new Date(`${hoy}T00:00:00`);
+      const finDia = new Date(`${hoy}T23:59:59`);
+      const { max } = await qr.manager
+        .createQueryBuilder(Pedido, 'p')
+        .select('COALESCE(MAX(p.num_pedido), 0)', 'max')
+        .where('p.created_at BETWEEN :ini AND :fin', { ini: inicioDia, fin: finDia })
+        .getRawOne<{ max: string }>();
+      const num_pedido = Number(max) + 1;
 
       const pedido = await qr.manager.save(Pedido, {
         num_pedido,

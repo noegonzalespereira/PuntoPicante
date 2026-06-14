@@ -63,6 +63,7 @@ export default function PedidosPage() {
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [] });
   const [appendContext, setAppendContext] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [modalEditar, setModalEditar] = useState({ open: false, loading: false, pedido: null });
   const [modalVer, setModalVer] = useState({ open: false, loading: false, pedido: null });
 
@@ -209,6 +210,7 @@ export default function PedidosPage() {
   }
 
   async function handleConfirmPedidoActual() {
+    if (saving) return;
     if (!validarAntesDeEnviar()) return;
 
     const payload = {
@@ -230,6 +232,7 @@ export default function PedidosPage() {
       })),
     };
 
+    setSaving(true);
     if (appendContext) {
       try {
         await pedidoService.addItems(appendContext.id_pedido, payload.items);
@@ -247,6 +250,8 @@ export default function PedidosPage() {
         loadData();
       } catch (err) {
         toast.error(getAxiosMessage(err));
+      } finally {
+        setSaving(false);
       }
     } else {
       try {
@@ -264,6 +269,8 @@ export default function PedidosPage() {
         loadData();
       } catch (err) {
         toast.error(getAxiosMessage(err));
+      } finally {
+        setSaving(false);
       }
     }
   }
@@ -1015,10 +1022,13 @@ export default function PedidosPage() {
                         variant="success"
                         className="w-100 mt-2 btn-confirmar-pedido"
                         onClick={handleConfirmPedidoActual}
-                        disabled={!cajaAbierta}
+                        disabled={!cajaAbierta || saving}
                       >
-                        <i className="bi bi-check2-circle me-2"></i>
-                        {appendContext ? "Añadir al pedido" : "Crear Pedido"}
+                        {saving ? (
+                          <><Spinner animation="border" size="sm" className="me-2" />Guardando...</>
+                        ) : (
+                          <><i className="bi bi-check2-circle me-2"></i>{appendContext ? "Añadir al pedido" : "Crear Pedido"}</>
+                        )}
                       </Button>
                     </div>
                   </>
@@ -1053,7 +1063,7 @@ export default function PedidosPage() {
                     <Table responsive hover className="align-middle table-pedidos-listado tabla-responsive-cards">
                       <thead>
                         <tr>
-                          <th>#</th>
+                          <th>Num Pedido</th>
                           <th>Tipo</th>
                           <th>Mesa</th>
                           <th>Total</th>
@@ -1066,7 +1076,7 @@ export default function PedidosPage() {
                       <tbody>
                         {pagina.map((p) => (
                           <tr key={p.id_pedido}>
-                            <td data-label="#" className="fw-bold">{p.num_pedido}</td>
+                            <td data-label="Num Pedido" className="fw-bold">{p.num_pedido}</td>
                             <td data-label="Tipo">{p.tipo_pedido}</td>
                             <td data-label="Mesa">{p.num_mesa ?? "-"}</td>
                             <td data-label="Total" className="fw-bold"><Money value={p.total} /></td>

@@ -95,12 +95,13 @@ export class InventarioService {
     return { stock_inicial: cantidad_inicial, vendido, merma, disponible };
   }
 
-  /** Busca la fila de inventario de un producto (PLATO: por fecha · BEBIDA: global). */
+  /** Busca la fila de inventario de un producto (PLATO: por fecha · BEBIDA/EXTRA: global). */
   private async filaDeProducto(prod: Producto, id_producto: number, fecha?: string) {
     if (prod.tipo === TipoProducto.PLATO) {
       const f = fecha ?? this.ymd();
       return this.invRepo.findOne({ where: { producto: { id_producto }, fecha: f } });
     }
+    // BEBIDA y EXTRA: stock global (fecha = null)
     return this.invRepo.findOne({ where: { producto: { id_producto }, fecha: IsNull() } });
   }
 
@@ -167,11 +168,15 @@ export class InventarioService {
     let row = await this.filaDeProducto(prod, id_producto, fecha);
     if (!row) {
       // Caso raro: se libera sin fila previa. La creamos vacía para no perder el registro.
+      const esPlato = prod.tipo === TipoProducto.PLATO;
+      const modo = esPlato ? ModoInventario.PLATO
+                 : prod.tipo === TipoProducto.EXTRA ? ModoInventario.EXTRA
+                 : ModoInventario.BEBIDA;
       row = await this.invRepo.save(
         this.invRepo.create({
           producto: { id_producto } as any,
-          modo: prod.tipo === TipoProducto.PLATO ? ModoInventario.PLATO : ModoInventario.BEBIDA,
-          fecha: prod.tipo === TipoProducto.PLATO ? (fecha ?? this.ymd()) : null,
+          modo,
+          fecha: esPlato ? (fecha ?? this.ymd()) : null,
           cantidad_inicial: 0,
         }),
       );
@@ -235,11 +240,14 @@ export class InventarioService {
     return { ok: true, items: results };
   }
 
-  /** Ingreso de stock para BEBIDA (global). Suma al inicial y registra un INGRESO. */
+  /** Ingreso de stock global para BEBIDA o EXTRA. Suma al inicial y registra un INGRESO. */
   async ingresoBebida(dto: IngresoBebidaDto) {
     const prod = await this.prodRepo.findOne({ where: { id_producto: dto.id_producto } });
     if (!prod) throw new NotFoundException('Producto no existe');
-    if (prod.tipo !== TipoProducto.BEBIDA) throw new BadRequestException('Solo aplica a BEBIDA');
+    if (prod.tipo !== TipoProducto.BEBIDA && prod.tipo !== TipoProducto.EXTRA)
+      throw new BadRequestException('Solo aplica a BEBIDA o EXTRA');
+
+    const modo = prod.tipo === TipoProducto.EXTRA ? ModoInventario.EXTRA : ModoInventario.BEBIDA;
 
     let row = await this.invRepo.findOne({
       where: { producto: { id_producto: dto.id_producto }, fecha: IsNull() },
@@ -247,7 +255,7 @@ export class InventarioService {
     if (!row) {
       row = this.invRepo.create({
         producto: { id_producto: dto.id_producto } as any,
-        modo: ModoInventario.BEBIDA,
+        modo,
         fecha: null,
         cantidad_inicial: 0,
       });
@@ -281,8 +289,8 @@ export class InventarioService {
     const esPlato = dto.sobre === MermaSobre.PLATO;
     if (esPlato && prod.tipo !== TipoProducto.PLATO)
       throw new BadRequestException('El producto no es PLATO');
-    if (!esPlato && prod.tipo !== TipoProducto.BEBIDA)
-      throw new BadRequestException('El producto no es BEBIDA');
+    if (!esPlato && prod.tipo !== TipoProducto.BEBIDA && prod.tipo !== TipoProducto.EXTRA)
+      throw new BadRequestException('El producto no es BEBIDA ni EXTRA');
 
     const fecha = esPlato ? (dto.fecha ?? this.ymd()) : undefined;
     const row = await this.filaDeProducto(prod, dto.id_producto, fecha);
@@ -329,7 +337,13 @@ export class InventarioService {
       order: { id_inventario: 'ASC' },
     });
 
-    const ids = [...platos, ...bebidas].map((i) => i.id_inventario);
+    const extras = await this.invRepo.find({
+      where: { fecha: IsNull(), modo: ModoInventario.EXTRA },
+      relations: { producto: true },
+      order: { id_inventario: 'ASC' },
+    });
+
+    const ids = [...platos, ...bebidas, ...extras].map((i) => i.id_inventario);
     const agg = await this.agregadoDeFilas(ids);
 
     const mapFila = (i: InventarioProducto) => {
@@ -340,7 +354,6 @@ export class InventarioService {
         stock_inicial: d.stock_inicial,
         vendido: d.vendido,
         merma: d.merma,
-        // "stock" = disponible. Se mantiene el nombre para no romper a quien ya lo consume.
         stock: d.disponible,
       };
     };
@@ -349,6 +362,7 @@ export class InventarioService {
       fecha,
       platos: platos.map(mapFila),
       bebidas: bebidas.map(mapFila),
+      extras: extras.map(mapFila),
     };
   }
 

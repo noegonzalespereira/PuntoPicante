@@ -12,8 +12,9 @@ import { Producto } from '../productos/producto.entity';
 import { InventarioMovimiento } from './inventario-mov.entity';
 
 export enum ModoInventario {
-  PLATO = 'PLATO',   
-  BEBIDA = 'BEBIDA', 
+  PLATO  = 'PLATO',
+  BEBIDA = 'BEBIDA',
+  EXTRA  = 'EXTRA',  // stock global (como bebida) — bolos, postres, emprendimiento propio
 }
 
 @Entity('inventario_producto')

@@ -1,6 +1,6 @@
 import { IsDateString, IsEnum, IsInt, IsOptional, IsPositive, IsString, MaxLength } from 'class-validator';
 
-export enum MermaSobre { PLATO = 'PLATO', BEBIDA = 'BEBIDA' }
+export enum MermaSobre { PLATO = 'PLATO', BEBIDA = 'BEBIDA', EXTRA = 'EXTRA' }
 
 export class MermaDto {
   @IsEnum(MermaSobre)
