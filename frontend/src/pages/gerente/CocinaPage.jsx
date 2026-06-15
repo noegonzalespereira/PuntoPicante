@@ -78,12 +78,34 @@ const CocinaPage = () => {
   }, [tab]);
 
   const marcarItemComoListo = async (id_pedido, id_detalle_pedido) => {
+    // Actualización optimista: cambia el estado local sin spinner
+    setPedidos(prev => prev.map(p => {
+      if (p.id_pedido !== id_pedido) return p;
+      const newItems = (p.items ?? []).map(it =>
+        it.id_detalle_pedido === id_detalle_pedido ? { ...it, estado_item: 'LISTO' } : it
+      );
+      const allListo = newItems.every(it => it.estado_item === 'LISTO');
+      return { ...p, items: newItems, estado_pedido: allListo ? 'LISTO' : p.estado_pedido };
+    }));
+
+    // Si este era el último ítem pendiente del pedido, actualiza el resumen
+    const pedido = pedidos.find(p => p.id_pedido === id_pedido);
+    if (pedido) {
+      const otrosPendientes = (pedido.items ?? []).filter(
+        it => it.id_detalle_pedido !== id_detalle_pedido && it.estado_item === 'PENDIENTE'
+      );
+      const estabaListoElItem = (pedido.items ?? []).find(it => it.id_detalle_pedido === id_detalle_pedido)?.estado_item === 'PENDIENTE';
+      if (estabaListoElItem && otrosPendientes.length === 0 && pedido.estado_pedido === 'PENDIENTE') {
+        setResumen(r => ({ pendientes: Math.max(0, r.pendientes - 1), listos: r.listos + 1 }));
+      }
+    }
+
     try {
       await cocinaService.marcarItemDespachado(id_pedido, id_detalle_pedido);
-      await cargarCajaYDatos();
     } catch (error) {
       console.error('Error al marcar el plato como listo:', error);
       toast.error('No se pudo marcar el plato como listo');
+      cargarCajaYDatos(); // revertir si falla
     }
   };
 

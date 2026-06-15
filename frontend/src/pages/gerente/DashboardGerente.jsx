@@ -3,11 +3,11 @@ import { Container, Row, Col, Table, Card, Spinner, Alert, Button } from 'react-
 import Swal from 'sweetalert2';
 import { useNavigate } from "react-router-dom";
 
-import { pedidoService } from '../../services/pedidosService';
 import { cajaService } from '../../services/cajaService';
 import { stockService } from '../../services/stockService';
 import { gastoService } from '../../services/gastosService';
-import { cocinaService } from '../../services/cocinaService'; // 👈 AÑADIDO
+import { cocinaService } from '../../services/cocinaService';
+import { reportesService } from '../../services/reportesService';
 
 import '../../styles/DashboardPage.css';
 import PageHeader from "../../components/molecules/PageHeader";
@@ -52,6 +52,7 @@ const DashboardGerente = () => {
     pedidosPendientes: 0,
     stockDetalle: { platos: [], bebidas: [] },
     platosVendidos: 0,
+    bebidasVendidas: 0,
   });
 
 
@@ -118,48 +119,8 @@ const DashboardGerente = () => {
       const fechaRef = cajaInfo.fechaRef;
 let totalVendido = 0;
 try {
-  if (cajaInfo.cajaAbierta && cajaInfo.cajaAbierta.id_caja) {
-    
-    const pedidosPagados = await pedidoService.getAll({
-      desde: fechaRef,
-      hasta: fechaRef,
-      estado_pago: 'PAGADO',
-    });
-
-    totalVendido = (pedidosPagados || []).reduce(
-      (sum, p) => sum + Number(p.total || 0),
-      0
-    );
-  } else {
-    // Sin caja abierta: tomar la última CAJA CERRADA
-    const historial = await cajaService.getHistorial({ cajeroId: '', desde: '', hasta: '' }).catch(() => []);
-    const cerradas = (historial || []).filter(h => h.estado === 'CERRADA');
-
-    if (cerradas.length > 0) {
-      cerradas.sort((a, b) => new Date(b.fecha_cierre) - new Date(a.fecha_cierre));
-      const ultima = cerradas[0];
-
-      // 1) Si tienes /cajas/:id/resumen con 'total_vendido', úsalo
-      const resumen = await cajaService.getResumen(ultima.id_caja).catch(() => null);
-      if (resumen?.total_vendido != null) {
-        totalVendido = Number(resumen.total_vendido || 0);
-      } else {
-        // 2) Fallback robusto: pedir por CAJA (evita problemas de fechas/zona horaria)
-        const pedidosPagados = await pedidoService.getAll({
-          caja: ultima.id_caja,     
-          estado_pago: 'PAGADO',
-       
-        });
-
-        totalVendido = (pedidosPagados || []).reduce(
-          (sum, p) => sum + Number(p.total || 0),
-          0
-        );
-      }
-    } else {
-      totalVendido = 0; // no hay cajas cerradas aún
-    }
-  }
+  const resumen = await reportesService.getResumen({ desde: fechaRef, hasta: fechaRef });
+  totalVendido = Number(resumen?.totales?.venta_total ?? 0);
 } catch (err) {
   console.error('Ventas (PAGADOS) error:', err?.response?.data || err);
   totalVendido = 0;
@@ -193,7 +154,9 @@ try {
       // E) Stock del día de referencia
       const stockResp = await stockService.getDisponible(fechaRef).catch(() => ({ platos: [], bebidas: [] }));
       const platos = stockResp?.platos || [];
+      const bebidas = stockResp?.bebidas || [];
       const platosVendidos = platos.reduce((acc, p) => acc + Number(p.vendido || 0), 0);
+      const bebidasVendidas = bebidas.reduce((acc, b) => acc + Number(b.vendido || 0), 0);
 
       setStats({
         fechaRef,
@@ -205,6 +168,7 @@ try {
         pedidosPendientes,
         stockDetalle: stockResp,
         platosVendidos,
+        bebidasVendidas,
       });
     } catch (error) {
       console.error('Error al cargar dashboard:', error);
@@ -247,40 +211,58 @@ try {
   };
 
   const renderStockTable = () => {
-    const platos = stats.stockDetalle?.platos || [];
-    return (
-      <Table responsive hover size="sm" className="tabla-stock-dashboard tabla-responsive-cards">
+    const platos  = stats.stockDetalle?.platos  || [];
+    const bebidas = stats.stockDetalle?.bebidas || [];
+
+    const StockSeccion = ({ items, labelCol, emptyMsg }) => (
+      <Table responsive hover size="sm" className="tabla-stock-dashboard tabla-responsive-cards mb-0">
         <thead>
           <tr>
-            <th>Plato</th>
+            <th>{labelCol}</th>
             <th className="text-center">Stock Día</th>
             <th className="text-center">Vendidos</th>
             <th className="text-center">Disponible</th>
           </tr>
         </thead>
         <tbody>
-          {platos.length > 0 ? (
-            platos.map((p) => {
-              const stockDia = p.stock_inicial ?? ((p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0));
+          {items.length > 0 ? (
+            items.map((p) => {
+              const stockDia  = p.stock_inicial ?? ((p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0));
               const disponible = p.stock ?? 0;
               return (
                 <tr key={p.id_producto}>
-                  <td data-label="Plato" className="fw-bold">{p.nombre}</td>
-                  <td data-label="Stock Día" className="text-center text-marron">{stockDia}</td>
-                  <td data-label="Vendidos" className="text-center text-primary">{p.vendido ?? 0}</td>
-                  <td data-label="Disponible" className="text-center fw-bold">{disponible}</td>
+                  <td className="fw-bold">{p.nombre}</td>
+                  <td className="text-center text-marron">{stockDia}</td>
+                  <td className="text-center text-primary">{p.vendido ?? 0}</td>
+                  <td className="text-center fw-bold">{disponible}</td>
                 </tr>
               );
             })
           ) : (
             <tr>
-              <td colSpan="4" className="text-center text-muted">
-                No hay stock registrado para {formatFechaVisual(stats.fechaRef)}.
-              </td>
+              <td colSpan="4" className="text-center text-muted">{emptyMsg}</td>
             </tr>
           )}
         </tbody>
       </Table>
+    );
+
+    return (
+      <>
+        <p className="text-muted mb-1 fw-bold">
+          Platos vendidos: <span className="text-marron">{stats.platosVendidos} uds.</span>
+        </p>
+        <StockSeccion items={platos} labelCol="Plato" emptyMsg={`Sin stock de platos para ${formatFechaVisual(stats.fechaRef)}.`} />
+
+        {bebidas.length > 0 && (
+          <>
+            <p className="text-muted mb-1 fw-bold mt-3">
+              Bebidas vendidas: <span className="text-marron">{stats.bebidasVendidas} uds.</span>
+            </p>
+            <StockSeccion items={bebidas} labelCol="Bebida" emptyMsg="" />
+          </>
+        )}
+      </>
     );
   };
 
@@ -344,13 +326,8 @@ try {
           <Col lg={12}>
             <Card className="card-informe-resumen p-4 h-100">
               <h5 className="text-marron fw-bold mb-3">
-                <BsBoxSeam className="me-2" /> Disponibilidad y Rendimiento de Stock (Platos) — {formatFechaVisual(stats.fechaRef)}
+                <BsBoxSeam className="me-2" /> Disponibilidad y Rendimiento de Stock — {formatFechaVisual(stats.fechaRef)}
               </h5>
-              <div className="mb-2">
-                <p className="text-muted mb-1 fw-bold">
-                  Total platos vendidos: <span className="text-marron">{stats.platosVendidos} uds.</span>
-                </p>
-              </div>
               {renderStockTable()}
               <div className="text-end mt-3">
                 <Button variant="outline-primary"  >

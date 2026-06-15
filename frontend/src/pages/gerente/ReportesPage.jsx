@@ -121,13 +121,14 @@ const rango = useMemo(() => {
 
 
   // Estado UI
-  const [activeTab, setActiveTab] = useState("financiero");
+  const [activeTab, setActiveTab] = useState("operacional");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   // KPIs
   const [kpis, setKpis] = useState({
     ventaTotal: 0,
+    ventaExtras: 0,
     gananciaNeta: 0,
     pedidosDespachados: 0,
     gastosTotales: 0
@@ -218,7 +219,7 @@ const rango = useMemo(() => {
       }
 
       // Todos estos valores ya vienen calculados (en SQL) desde /reportes/resumen.
-      const ventaTotal = Number(resumen?.totales?.venta_total ?? 0);
+      const ventaTotalBackend = Number(resumen?.totales?.venta_total ?? 0);
       const efectivo = Number(resumen?.metodos_pago?.efectivo?.monto ?? 0);
       const qr = Number(resumen?.metodos_pago?.qr?.monto ?? 0);
 
@@ -241,6 +242,12 @@ const rango = useMemo(() => {
 
       const pedidosDespachados = Number(resumen?.totales?.pedidos_despachados ?? 0);
 
+      // Separar totales por tipo de producto
+      const totalPlatosBs  = vendidosDetalle.filter(p => p.tipo === 'PLATO').reduce((s, p) => s + Number(p.ventas ?? 0), 0);
+      const totalBebidasBs = vendidosDetalle.filter(p => p.tipo === 'BEBIDA').reduce((s, p) => s + Number(p.ventas ?? 0), 0);
+      const totalExtrasBs  = vendidosDetalle.filter(p => p.tipo === 'EXTRA').reduce((s, p) => s + Number(p.ventas ?? 0), 0);
+      const ventaTotalRestaurante = totalPlatosBs + totalBebidasBs;
+
       // Caja compactada para mostrar en la tarjeta
       const cajaView = {
         apertura: row ? Number(row.monto_apertura || 0) : 0,
@@ -248,13 +255,14 @@ const rango = useMemo(() => {
         cajero: row?.usuario_nombre || row?.cajero || "N/A",
         efectivo,
         qr,
-        totalIngresos: ventaTotal
+        totalIngresos: ventaTotalBackend
       };
 
       // KPIs
-      const gananciaNeta = ventaTotal - gastosTotales;
+      const gananciaNeta = ventaTotalRestaurante - gastosTotales;
       setKpis({
-        ventaTotal: Number(ventaTotal.toFixed(2)),
+        ventaTotal: Number(ventaTotalRestaurante.toFixed(2)),
+        ventaExtras: Number(totalExtrasBs.toFixed(2)),
         gananciaNeta: Number(gananciaNeta.toFixed(2)),
         pedidosDespachados,
         gastosTotales: Number(gastosTotales.toFixed(2))
@@ -289,341 +297,297 @@ const rango = useMemo(() => {
   }, [cargar]);
   
   const handleExportPDF = () => {
-  const { desde, hasta } = rango;
-  const doc = new jsPDF("p", "mm", "a4");
+    const { desde, hasta } = rango;
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageW  = doc.internal.pageSize.getWidth();
+    const pageH  = doc.internal.pageSize.getHeight();
+    const M      = 13;                     // margen izquierdo/derecho
+    const CW     = pageW - M * 2;         // ancho de contenido
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-  const centerX = pageWidth / 2;
-
-  const isSingleDay = !!(desde && hasta && desde === hasta);
-
-  // Paleta basada en el logo
-  const rojo = [198, 40, 40];      // acento
-  const verde = [46, 125, 50];
-  const negro = [40, 40, 40];
-  const gris = [120, 120, 120];
-  const crema = [255, 249, 230];
-  const bordeSuave = [220, 220, 220];
-
-  let y = 10;
-
-  /* ===== HEADER CON BANDA Y LOGO ===== */
-  doc.setFillColor(...crema);
-  doc.rect(0, 0, pageWidth, 30, "F");
-
-  // Logo
-  try {
-    doc.addImage(logoPuntoPicante, "JPEG", margin, 6, 24, 20);
-  } catch (e) {
-    console.warn("No se pudo cargar el logo en el PDF:", e);
-  }
-
-  // Marca + título centrados
-  doc.setTextColor(...rojo);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("El Punto Picante", centerX, 13, { align: "center" });
-
-  doc.setTextColor(...negro);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text("Reporte Gerencial", centerX, 19, { align: "center" });
-
-  doc.setTextColor(...gris);
-  doc.setFontSize(9);
-  doc.text(
-    `Rango: ${formatFechaVisual(desde)} — ${formatFechaVisual(hasta)}`,
-    centerX,
-    24,
-    { align: "center" }
-  );
-  doc.text(
-    `Tipo: ${isSingleDay ? "Reporte diario" : "Reporte por rango"}`,
-    centerX,
-    28,
-    { align: "center" }
-  );
-
-  y = 36;
-
-  // Helper: card / sección
-  const drawCard = (x, y0, w, title, accentColor = rojo) => {
-    const padding = 4;
-    const hHeader = 7;
-
-    // Fondo card
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...bordeSuave);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(x, y0, w, 0, 3, 3, "S"); // altura se ajusta luego con líneas
-
-    // Encabezado
-    doc.setFillColor(...accentColor);
-    doc.roundedRect(x, y0, w, hHeader, 3, 3, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(title, x + padding, y0 + 4.6);
-
-    // Contenido
-    doc.setTextColor(...negro);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-
-    return {
-      y: y0 + hHeader + padding,
-      padding,
-      x,
-      w,
-      close: (yContentMax) => {
-        // dibujar borde final ajustando altura
-        const finalH = Math.max(hHeader + padding + (yContentMax - (y0 + hHeader + padding)) + padding, hHeader + 10);
-        doc.setDrawColor(...bordeSuave);
-        doc.roundedRect(x, y0, w, finalH, 3, 3, "S");
-        return y0 + finalH + 4;
-      }
+    // ── Paleta ──────────────────────────────────────────────────
+    const C = {
+      marron:     [74,  43,  19],
+      verde:      [46, 125,  50],
+      rojo:       [198, 40,  40],
+      ambar:      [180,120,   0],
+      azul:       [30, 100, 180],
+      oscuro:     [40,  40,  40],
+      medio:      [100,100, 100],
+      claro:      [230,230, 230],
+      muyClaro:   [246,246, 246],
+      crema:      [254,249, 230],
+      blanco:     [255,255, 255],
+      verdeClaro: [232,245, 233],
+      rojoClaro:  [255,243, 243],
+      azulClaro:  [232,240, 255],
     };
-  };
 
-  const ensureSpace = (needed) => {
-    if (y + needed > 285) {
-      doc.addPage();
-      y = 15;
+    let y = 0;
+
+    // ── Helpers ─────────────────────────────────────────────────
+    const newPage = () => { doc.addPage(); y = 15; };
+    const guard   = (h) => { if (y + h > pageH - 14) newPage(); };
+
+    const fill  = (c) => doc.setFillColor(...c);
+    const stroke= (c) => doc.setDrawColor(...c);
+    const color = (c) => doc.setTextColor(...c);
+    const font  = (w, s) => { doc.setFont("helvetica", w); doc.setFontSize(s); };
+
+    const rect  = (x, ry, w, h, style = "F") => doc.rect(x, ry, w, h, style);
+    const txt   = (t, x, ry, opts = {}) => doc.text(String(t), x, ry, opts);
+
+    const hline = (ry, c = C.claro) => {
+      stroke(c); doc.setLineWidth(0.2);
+      doc.line(M, ry, M + CW, ry);
+    };
+
+    // Encabezado de sección con banda de color
+    const seccion = (titulo, colorBanda = C.marron) => {
+      guard(10);
+      fill(colorBanda); rect(M, y, CW, 7);
+      color(C.blanco); font("bold", 8.5);
+      txt(titulo.toUpperCase(), M + 3, y + 5);
+      y += 10;
+    };
+
+    // Fila de tabla: colDefs = [{text, w, align?}]
+    const fila = (colDefs, bg = null, textColor = C.oscuro, negrita = false) => {
+      guard(6);
+      if (bg) { fill(bg); rect(M, y, CW, 6); }
+      font(negrita ? "bold" : "normal", 8);
+      color(textColor);
+      let x = M + 2;
+      colDefs.forEach(({ text, w, align = "left" }) => {
+        if (align === "right") {
+          txt(String(text ?? ""), x + w - 2, y + 4.2, { align: "right" });
+        } else {
+          txt(String(text ?? "").slice(0, 55), x, y + 4.2);
+        }
+        x += w;
+      });
+      y += 6;
+    };
+
+    const filaHeader = (colDefs) => fila(colDefs, C.claro, C.medio, true);
+    const filaTotal  = (colDefs) => {
+      guard(7);
+      fill(C.verdeClaro); rect(M, y, CW, 7);
+      font("bold", 8.5); color(C.verde);
+      let x = M + 2;
+      colDefs.forEach(({ text, w, align = "left" }) => {
+        if (align === "right") {
+          txt(String(text ?? ""), x + w - 2, y + 5, { align: "right" });
+        } else {
+          txt(String(text ?? ""), x, y + 5);
+        }
+        x += w;
+      });
+      y += 9;
+    };
+
+    // Tabla de productos por categoría
+    const tablaProductos = (filas, titulo, colorBanda, totalUds, totalBs) => {
+      if (!filas.length) return;
+      seccion(titulo, colorBanda);
+      const W = [CW - 28, 14, 14];
+      filaHeader([
+        { text: "Producto",   w: W[0] },
+        { text: "Uds.",       w: W[1], align: "right" },
+        { text: "Bs",         w: W[2], align: "right" },
+      ]);
+      filas.forEach((p, i) => {
+        fila([
+          { text: p.nombre,                        w: W[0] },
+          { text: `${p.cantidad}x`,                w: W[1], align: "right" },
+          { text: Number(p.ventas??0).toFixed(2),  w: W[2], align: "right" },
+        ], i % 2 === 0 ? C.muyClaro : null);
+      });
+      hline(y); y += 1;
+      filaTotal([
+        { text: `TOTAL: ${totalUds} unidades vendidas`, w: W[0] },
+        { text: "",                                      w: W[1] },
+        { text: `Bs ${totalBs.toFixed(2)}`,             w: W[2], align: "right" },
+      ]);
+      y += 2;
+    };
+
+    // ── ENCABEZADO ───────────────────────────────────────────────
+    fill(C.crema);  rect(0, 0, pageW, 30);
+    fill(C.marron); rect(0, 30, pageW, 1.5);
+
+    try { doc.addImage(logoPuntoPicante, "JPEG", M, 4, 22, 22); } catch {}
+
+    color(C.marron); font("bold", 17);
+    txt("El Punto Picante", M + 26, 14);
+    color(C.oscuro); font("normal", 9);
+    txt("Sistema POS  —  Reporte Gerencial", M + 26, 20);
+
+    const rangoTxt = desde === hasta
+      ? `Fecha: ${formatFechaVisual(desde)}`
+      : `Período: ${formatFechaVisual(desde)} al ${formatFechaVisual(hasta)}`;
+    color(C.medio); font("normal", 8);
+    txt(rangoTxt,                               pageW - M, 13, { align: "right" });
+    txt(`Generado: ${formatFechaVisual(ymdLaPaz())}`, pageW - M, 19, { align: "right" });
+
+    y = 36;
+
+    // ── KPI BOXES ────────────────────────────────────────────────
+    const kpiData = [
+      { label: "VENTA TOTAL",    val: `Bs ${kpis.ventaTotal.toFixed(2)}`,    sub: "Platos + Bebidas",  c: C.marron },
+      { label: "VENTA EXTRAS",   val: `Bs ${kpis.ventaExtras.toFixed(2)}`,   sub: "Emprendimiento",    c: C.ambar  },
+      { label: "GANANCIA NETA",  val: `Bs ${kpis.gananciaNeta.toFixed(2)}`,  sub: "Sin extras",        c: C.verde  },
+      { label: "GASTOS",         val: `Bs ${kpis.gastosTotales.toFixed(2)}`, sub: "Total del período", c: C.rojo   },
+    ];
+    const bw = (CW - 9) / 4;
+    const bh = 22;
+    kpiData.forEach((k, i) => {
+      const bx = M + i * (bw + 3);
+      fill([248, 248, 248]); stroke(k.c); doc.setLineWidth(0.4);
+      rect(bx, y, bw, bh, "FD");
+      fill(k.c); rect(bx, y, bw, 3);
+      color(C.medio); font("bold", 6.5);
+      txt(k.label, bx + bw / 2, y + 8.5, { align: "center" });
+      color(k.c); font("bold", 9.5);
+      txt(k.val,   bx + bw / 2, y + 15,  { align: "center" });
+      color(C.medio); font("normal", 6);
+      txt(k.sub,   bx + bw / 2, y + 20,  { align: "center" });
+    });
+    y += bh + 8;
+
+    // ── PRODUCTOS POR CATEGORÍA ───────────────────────────────────
+    const platos  = inventario.vendidosDetalle.filter(p => p.tipo === "PLATO");
+    const bebidas = inventario.vendidosDetalle.filter(p => p.tipo === "BEBIDA");
+    const extras  = inventario.vendidosDetalle.filter(p => p.tipo === "EXTRA");
+
+    const sumUds = (arr) => arr.reduce((s, p) => s + Number(p.cantidad ?? 0), 0);
+    const sumBs  = (arr) => arr.reduce((s, p) => s + Number(p.ventas   ?? 0), 0);
+
+    const totalPlatosUds  = sumUds(platos);
+    const totalBebidasUds = sumUds(bebidas);
+    const totalExtrasUds  = sumUds(extras);
+    const totalPlatosBs   = sumBs(platos);
+    const totalBebidasBs  = sumBs(bebidas);
+    const totalExtrasBs   = sumBs(extras);
+
+    tablaProductos(platos,  "Platos",                    C.marron, totalPlatosUds,  totalPlatosBs);
+    tablaProductos(bebidas, "Bebidas",                   C.azul,   totalBebidasUds, totalBebidasBs);
+    tablaProductos(extras,  "Extras  —  Emprendimiento", C.ambar,  totalExtrasUds,  totalExtrasBs);
+
+    // Banner Total Restaurante
+    guard(14);
+    fill(C.verde); rect(M, y, CW, 13);
+    color(C.blanco); font("bold", 10);
+    txt("TOTAL RESTAURANTE  (Platos + Bebidas)", M + 4, y + 6);
+    font("normal", 8);
+    txt(`${totalPlatosUds + totalBebidasUds} unidades vendidas`, M + 4, y + 11);
+    font("bold", 13);
+    txt(`Bs ${(totalPlatosBs + totalBebidasBs).toFixed(2)}`, M + CW - 2, y + 9, { align: "right" });
+    y += 17;
+
+    // ── PEDIDOS POR TIPO ─────────────────────────────────────────
+    seccion("Pedidos por Tipo", [60, 60, 60]);
+    guard(18);
+    const pedItems = [
+      { label: "Para Comer",  val: inventario.comer,  bg: C.muyClaro, tc: C.marron },
+      { label: "Para Llevar", val: inventario.llevar, bg: C.muyClaro, tc: C.marron },
+      { label: "Mixtos",      val: inventario.mixtos, bg: C.muyClaro, tc: C.marron },
+      { label: "Total Despachados", val: kpis.pedidosDespachados, bg: C.verdeClaro, tc: C.verde },
+    ];
+    const pw = CW / 4;
+    pedItems.forEach(({ label, val, bg, tc }, i) => {
+      fill(bg); rect(M + i * pw + (i > 0 ? 1 : 0), y, pw - (i > 0 ? 1 : 0), 16);
+      color(tc); font("bold", 14);
+      txt(String(val), M + i * pw + pw / 2, y + 9,  { align: "center" });
+      color(C.medio); font("normal", 6.5);
+      txt(label,       M + i * pw + pw / 2, y + 14, { align: "center" });
+    });
+    y += 20;
+    color(C.medio); font("normal", 7.5);
+    txt(`Ítems a mesa: ${inventario.platosMesa}    ·    Ítems para llevar: ${inventario.platosLlevar}`, M, y);
+    y += 8;
+
+    // ── MÉTODOS DE PAGO ──────────────────────────────────────────
+    seccion("Métodos de Pago", C.azul);
+    guard(16);
+    const mw = (CW - 4) / 2;
+    [
+      { label: "Efectivo", val: caja.efectivo, bg: C.azulClaro },
+      { label: "QR / Transferencia", val: caja.qr, bg: C.azulClaro },
+    ].forEach(({ label, val, bg }, i) => {
+      const mx = M + i * (mw + 4);
+      fill(bg); rect(mx, y, mw, 14);
+      color(C.medio); font("normal", 7.5);
+      txt(label, mx + 4, y + 6);
+      color(C.oscuro); font("bold", 11);
+      txt(`Bs ${val.toFixed(2)}`, mx + 4, y + 12);
+    });
+    y += 18;
+
+    // ── CAJA ─────────────────────────────────────────────────────
+    seccion("Caja del Período", C.marron);
+    guard(10);
+    const cajaItems = [
+      { label: "Apertura",      val: `Bs ${caja.apertura.toFixed(2)}` },
+      { label: "Cierre Físico", val: `Bs ${caja.cierre.toFixed(2)}` },
+      { label: "Responsable",   val: caja.cajero },
+    ];
+    color(C.oscuro); font("normal", 8.5);
+    cajaItems.forEach(({ label, val }, i) => {
+      txt(`${label}: `, M + i * (CW / 3) + 2, y + 4);
+      font("bold", 8.5);
+      txt(val, M + i * (CW / 3) + 2 + doc.getTextWidth(`${label}: `), y + 4);
+      font("normal", 8.5);
+    });
+    y += 10;
+
+    // ── MERMAS ───────────────────────────────────────────────────
+    if (inventario.mermasUnidades > 0 || inventario.mermasCosto > 0) {
+      seccion("Mermas", C.rojo);
+      guard(10);
+      color(C.oscuro); font("normal", 8.5);
+      txt(`Unidades: ${inventario.mermasUnidades} uds.`, M + 2, y + 4);
+      color(C.rojo); font("bold", 8.5);
+      txt(`Costo estimado: -Bs ${Number(inventario.mermasCosto).toFixed(2)}`, M + 70, y + 4);
+      y += 10;
     }
+
+    // ── GASTOS ───────────────────────────────────────────────────
+    if (gastosDetalle.length > 0) {
+      seccion("Detalle de Gastos", C.rojo);
+      const GW = [22, CW - 44, 22];
+      filaHeader([
+        { text: "Fecha",      w: GW[0] },
+        { text: "Descripción",w: GW[1] },
+        { text: "Monto (Bs)", w: GW[2], align: "right" },
+      ]);
+      gastosDetalle.forEach((g, i) => {
+        fila([
+          { text: g.fecha ? formatFechaVisual(g.fecha) : "-", w: GW[0] },
+          { text: g.descripcion || "-",                        w: GW[1] },
+          { text: Number(g.monto||0).toFixed(2),               w: GW[2], align: "right" },
+        ], i % 2 === 0 ? C.rojoClaro : null);
+      });
+      hline(y); y += 1;
+      filaTotal([
+        { text: "TOTAL GASTOS", w: GW[0] + GW[1] },
+        { text: `Bs ${kpis.gastosTotales.toFixed(2)}`, w: GW[2], align: "right" },
+      ]);
+    }
+
+    // ── FOOTER en todas las páginas ───────────────────────────────
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      fill(C.marron); rect(0, pageH - 9, pageW, 9);
+      color(C.blanco); font("normal", 6.5);
+      txt(
+        `El Punto Picante · Sistema POS · ${rangoTxt} · Pág. ${i} de ${totalPages}`,
+        pageW / 2, pageH - 3.5, { align: "center" }
+      );
+    }
+
+    doc.save(`reporte_${desde}_${hasta}.pdf`);
   };
-
-  /* ===== FILA 1: Resumen financiero + Métodos de pago ===== */
-  const colW = (contentWidth - 4) / 2;
-
-  ensureSpace(40);
-  // Card Resumen financiero
-  let card1 = drawCard(margin, y, colW, "Resumen financiero", rojo);
-  doc.text(
-    `Venta total (PAGADOS):`,
-    card1.x + card1.padding,
-    card1.y
-  );
-  doc.setTextColor(...verde);
-  doc.text(
-    `Bs ${kpis.ventaTotal.toFixed(2)}`,
-    card1.x + card1.padding,
-    card1.y + 4
-  );
-  doc.setTextColor(...negro);
-  doc.text(
-    `Ganancia neta: Bs ${kpis.gananciaNeta.toFixed(2)}`,
-    card1.x + card1.padding,
-    card1.y + 9
-  );
-  doc.text(
-    `Gastos: Bs ${kpis.gastosTotales.toFixed(2)}`,
-    card1.x + card1.padding,
-    card1.y + 14
-  );
-  const nextY1 = card1.close(card1.y + 16);
-
-  // Card Métodos de pago
-  let card2 = drawCard(margin + colW + 4, y, colW, "Métodos de pago", rojo);
-  doc.text(
-    `Efectivo: Bs ${caja.efectivo.toFixed(2)}`,
-    card2.x + card2.padding,
-    card2.y
-  );
-  doc.text(
-    `QR / Transf.: Bs ${caja.qr.toFixed(2)}`,
-    card2.x + card2.padding,
-    card2.y + 5
-  );
-  const nextY2 = card2.close(card2.y + 9);
-
-  y = Math.max(nextY1, nextY2);
-
-  /* ===== FILA 2: Caja + Resumen operacional ===== */
-  ensureSpace(40);
-
-  // Card Caja
-  card1 = drawCard(margin, y, colW, "Caja", rojo);
-  doc.text(
-    `Apertura: Bs ${caja.apertura.toFixed(2)}`,
-    card1.x + card1.padding,
-    card1.y
-  );
-  doc.text(
-    `Cierre físico: Bs ${caja.cierre.toFixed(2)}`,
-    card1.x + card1.padding,
-    card1.y + 5
-  );
-  doc.text(
-    `Responsable: ${caja.cajero}`,
-    card1.x + card1.padding,
-    card1.y + 10
-  );
-  const nextY3 = card1.close(card1.y + 14);
-
-  // Card Resumen operacional
-  const totalPlatosVendidos = inventario.vendidosDetalle.reduce(
-    (sum, item) => sum + Number(item.cantidad || 0),
-    0
-  );
-  card2 = drawCard(margin + colW + 4, y, colW, "Resumen operacional", rojo);
-  doc.text(
-    `Pedidos despachados: ${kpis.pedidosDespachados}`,
-    card2.x + card2.padding,
-    card2.y
-  );
-  doc.text(
-    `Platos vendidos: ${totalPlatosVendidos} uds.`,
-    card2.x + card2.padding,
-    card2.y + 5
-  );
-  doc.text(
-    `Comer: ${inventario.comer}  ·  Llevar: ${inventario.llevar}`,
-    card2.x + card2.padding,
-    card2.y + 10
-  );
-  doc.text(
-    `Mixtos: ${inventario.mixtos}`,
-    card2.x + card2.padding,
-    card2.y + 15
-  );
-  doc.text(
-    `Mermas: ${inventario.mermasUnidades} uds. · Bs ${Number(
-      inventario.mermasCosto
-    ).toFixed(2)}`,
-    card2.x + card2.padding,
-    card2.y + 20
-  );
-  const nextY4 = card2.close(card2.y + 24);
-
-  y = Math.max(nextY3, nextY4) + 2;
-
-  /* ===== TOP PRODUCTOS VENDIDOS ===== */
-  if (inventario.vendidosDetalle.length > 0) {
-    ensureSpace(40);
-    const card = drawCard(margin, y, contentWidth, "Top productos vendidos", rojo);
-
-    let yy = card.y;
-    doc.setFontSize(8);
-    doc.setTextColor(...gris);
-    doc.text("Producto", card.x + card.padding, yy);
-    doc.text("Cant.", card.x + card.w - card.padding, yy, { align: "right" });
-    yy += 3;
-    doc.setDrawColor(...bordeSuave);
-    doc.line(card.x + card.padding, yy, card.x + card.w - card.padding, yy);
-    yy += 3;
-
-    doc.setFontSize(9);
-    doc.setTextColor(...negro);
-    inventario.vendidosDetalle.slice(0, 12).forEach(item => {
-      if (yy > 280) {
-        const nextPageY = card.close(yy);
-        doc.addPage();
-        y = 15;
-        // nuevo card continuación
-        const cardCont = drawCard(margin, y, contentWidth, "Top productos vendidos (cont.)", rojo);
-        yy = cardCont.y;
-        doc.setFontSize(8);
-        doc.setTextColor(...gris);
-        doc.text("Producto", cardCont.x + cardCont.padding, yy);
-        doc.text("Cant.", cardCont.x + cardCont.w - cardCont.padding, yy, { align: "right" });
-        yy += 3;
-        doc.line(cardCont.x + cardCont.padding, yy, cardCont.x + cardCont.w - cardCont.padding, yy);
-        yy += 3;
-        doc.setFontSize(9);
-        doc.setTextColor(...negro);
-        card.close = cardCont.close; // redirigimos close al nuevo
-      }
-      const nombre = (item.nombre || "").toString().slice(0, 60);
-      const cant = String(item.cantidad || 0);
-      doc.text(nombre, card.x + card.padding, yy);
-      doc.text(cant, card.x + card.w - card.padding, yy, {
-        align: "right",
-      });
-      yy += 4;
-    });
-
-    y = card.close(yy);
-  }
-
-  /* ===== DETALLE DE GASTOS ===== */
-  if (gastosDetalle.length > 0) {
-    ensureSpace(50);
-    const card = drawCard(margin, y, contentWidth, "Detalle de gastos", rojo);
-
-    let yy = card.y;
-    doc.setFontSize(8);
-    doc.setTextColor(...gris);
-    doc.text("Fecha", card.x + card.padding, yy);
-    doc.text("Descripción", card.x + 28, yy);
-    doc.text("Monto (Bs)", card.x + card.w - card.padding, yy, {
-      align: "right",
-    });
-    yy += 3;
-    doc.setDrawColor(...bordeSuave);
-    doc.line(card.x + card.padding, yy, card.x + card.w - card.padding, yy);
-    yy += 3;
-
-    doc.setFontSize(8.5);
-    doc.setTextColor(...negro);
-
-    gastosDetalle.slice(0, 30).forEach(g => {
-      if (yy > 280) {
-        const nextPageY = card.close(yy);
-        doc.addPage();
-        y = 15;
-        const cardCont = drawCard(margin, y, contentWidth, "Detalle de gastos (cont.)", rojo);
-        yy = cardCont.y;
-        doc.setFontSize(8);
-        doc.setTextColor(...gris);
-        doc.text("Fecha", cardCont.x + cardCont.padding, yy);
-        doc.text("Descripción", cardCont.x + 28, yy);
-        doc.text("Monto (Bs)", cardCont.x + cardCont.w - cardCont.padding, yy, {
-          align: "right",
-        });
-        yy += 3;
-        doc.line(cardCont.x + cardCont.padding, yy, cardCont.x + cardCont.w - cardCont.padding, yy);
-        yy += 3;
-        doc.setFontSize(8.5);
-        doc.setTextColor(...negro);
-        card.close = cardCont.close;
-      }
-
-      const fecha = g.fecha ? formatFechaVisual(g.fecha) : "-";
-      const desc = (g.descripcion || "").toString().slice(0, 60);
-      const monto = Number(g.monto || 0).toFixed(2);
-
-      doc.text(fecha, card.x + card.padding, yy);
-      doc.text(desc, card.x + 28, yy);
-      doc.text(monto, card.x + card.w - card.padding, yy, {
-        align: "right",
-      });
-      yy += 4;
-    });
-
-    y = card.close(yy);
-  }
-
-  /* ===== FOOTER GLOBAL ===== */
-  const fileDesde = desde || "sin-desde";
-  const fileHasta = hasta || "sin-hasta";
-  const pages = doc.getNumberOfPages();
-
-  for (let i = 1; i <= pages; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(...gris);
-    doc.text(
-      `El Punto Picante · Reporte ${fileDesde} — ${fileHasta} · Página ${i} de ${pages}`,
-      centerX,
-      292,
-      { align: "center" }
-    );
-  }
-
-  doc.save(`reporte_punto_picante_${fileDesde}_${fileHasta}.pdf`);
-};
 
 
 
@@ -871,6 +835,7 @@ const rango = useMemo(() => {
               <div className="stat-item"><span className="stat-value">{inventario.mixtos}</span><span className="stat-label">Mixtos</span></div>
               <div className="stat-item"><span className="stat-value">{inventario.platosMesa}</span><span className="stat-label">Ítems a Mesa</span></div>
               <div className="stat-item"><span className="stat-value">{inventario.platosLlevar}</span><span className="stat-label">Ítems Llevar</span></div>
+              <div className="stat-item"><span className="stat-value" style={{color:'#2e7d32'}}>{kpis.pedidosDespachados}</span><span className="stat-label">Total Despachados</span></div>
             </div>
           </Card>
         </Col>
@@ -1063,11 +1028,28 @@ const rango = useMemo(() => {
                   <BsWallet size={50} />
                 </div>
                 <span className="kpi-label">
-                  VENTA TOTAL (PAGADOS)
+                  VENTA TOTAL
                 </span>
                 <div className="kpi-value">
                   Bs {kpis.ventaTotal.toFixed(2)}
                 </div>
+                <small className="text-muted">Platos + Bebidas</small>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col lg={3} md={6}>
+            <Card className="kpi-card kpi-marron">
+              <Card.Body>
+                <div className="kpi-icon">
+                  <BsBoxSeam size={50} />
+                </div>
+                <span className="kpi-label">
+                  VENTA TOTAL EXTRAS
+                </span>
+                <div className="kpi-value">
+                  Bs {kpis.ventaExtras.toFixed(2)}
+                </div>
+                <small className="text-muted">Emprendimiento</small>
               </Card.Body>
             </Card>
           </Col>
@@ -1082,21 +1064,6 @@ const rango = useMemo(() => {
                 </span>
                 <div className="kpi-value kpi-value-verde">
                   Bs {kpis.gananciaNeta.toFixed(2)}
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col lg={3} md={6}>
-            <Card className="kpi-card kpi-marron">
-              <Card.Body>
-                <div className="kpi-icon">
-                  <BsReceipt size={50} />
-                </div>
-                <span className="kpi-label">
-                  PEDIDOS DESPACHADOS
-                </span>
-                <div className="kpi-value">
-                  {kpis.pedidosDespachados}
                 </div>
               </Card.Body>
             </Card>
@@ -1123,22 +1090,18 @@ const rango = useMemo(() => {
           <Nav variant="tabs" className="custom-tabs">
             <Nav.Item>
               <Nav.Link
-                active={activeTab === "financiero"}
-                onClick={() =>
-                  setActiveTab("financiero")
-                }
+                active={activeTab === "operacional"}
+                onClick={() => setActiveTab("operacional")}
               >
-                💰 Caja e Ingresos
+                📦 Inventario y Operación
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
               <Nav.Link
-                active={activeTab === "operacional"}
-                onClick={() =>
-                  setActiveTab("operacional")
-                }
+                active={activeTab === "financiero"}
+                onClick={() => setActiveTab("financiero")}
               >
-                📦 Inventario y Operación
+                💰 Caja e Ingresos
               </Nav.Link>
             </Nav.Item>
           </Nav>

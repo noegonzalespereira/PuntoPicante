@@ -1,4 +1,4 @@
-import { ValidateIf ,IsArray, ArrayMinSize, IsEnum, IsInt, IsOptional, IsPositive, ValidateNested, Min, Max } from 'class-validator';
+import { ValidateIf ,IsArray, ArrayMinSize, IsEnum, IsIn, IsInt, IsOptional, IsPositive, ValidateNested, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MetodoPago, TipoPedido,EstadoPago } from '../pedido.entity';
 import { DestinoItem,EstadoItem } from '../detalle-pedido.entity';
@@ -31,8 +31,12 @@ export class CreatePedidoDto {
   @ValidateIf((o) => o.tipo_pedido !== TipoPedido.LLEVAR)
   @IsInt()
   @Min(1)
-  @Max(9)
+  @Max(50)
   num_mesa?: number | null;
+
+  @IsOptional()
+  @IsIn(['A', 'B'])
+  ambiente?: string;
   @IsOptional()
   @IsEnum(MetodoPago)
   metodo_pago: MetodoPago | null;

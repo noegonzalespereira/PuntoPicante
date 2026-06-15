@@ -40,6 +40,9 @@ export class Pedido {
   @Column({ type: 'int', nullable: true, name: 'num_mesa' })
   num_mesa: number | null;
 
+  @Column({ type: 'varchar', length: 1, default: 'A', name: 'ambiente' })
+  ambiente: string;
+
   @Column({ type: 'enum', enum: MetodoPago, name: 'metodo_pago', nullable:true,default:null })
   metodo_pago: MetodoPago | null;
 

@@ -161,9 +161,9 @@ export class PedidosService {
     if (caja.estado !== EstadoCaja.ABIERTA) throw new BadRequestException('La caja no está ABIERTA');
 
     if(dto.tipo_pedido === TipoPedido.MESA || dto.tipo_pedido === TipoPedido.MIXTO){
-      
-      if(!dto.num_mesa || dto.num_mesa === undefined || dto.num_mesa < 1 || dto.num_mesa > 9 ){
-        throw new BadRequestException('num_mesa es obligatorio y debe estar entre 1 y 9');}
+      if(!dto.num_mesa || dto.num_mesa < 1){
+        throw new BadRequestException('num_mesa / num_ficha es obligatorio para pedidos de mesa');
+      }
     }
     else {
       dto.num_mesa= null;
@@ -217,6 +217,7 @@ export class PedidosService {
         caja: { id_caja: dto.id_caja },
         tipo_pedido: dto.tipo_pedido,
         num_mesa: dto.num_mesa,
+        ambiente: dto.ambiente ?? 'A',
         metodo_pago: dto.metodo_pago,
         estado_pago: dto.estado_pago,
         estado_pedido: EstadoPedido.PENDIENTE,
@@ -264,7 +265,6 @@ export class PedidosService {
       order: { items: { id_detalle_pedido: 'ASC' } },
     });
     if (!p) throw new NotFoundException('Pedido no existe');
-    if (p.estado_pago === EstadoPago.PAGADO) throw new ForbiddenException('No se puede editar un pedido PAGADO');
 
     if (dto.tipo_pedido !== undefined) p.tipo_pedido = dto.tipo_pedido;
     if (dto.num_mesa !== undefined) p.num_mesa = dto.num_mesa as any;
@@ -356,7 +356,6 @@ export class PedidosService {
     if (!items?.length) throw new BadRequestException('Debes enviar al menos un ítem');
     const p = await this.pedidos.findOne({ where: { id_pedido } });
     if (!p) throw new NotFoundException('Pedido no existe');
-    if (p.estado_pago === EstadoPago.PAGADO) throw new ForbiddenException('No se puede editar un pedido PAGADO');
 
     await this.reservarStock(items.map(i => ({ id_producto: i.id_producto, cantidad: i.cantidad })), p.created_at);
 
@@ -409,7 +408,6 @@ export class PedidosService {
   async editarItem(id_pedido: number, id_detalle: number, dto: { cantidad?: number; notas?: string | null; destino?: DestinoItem ,estado_item?:EstadoItem}) {
     const p = await this.pedidos.findOne({ where: { id_pedido } });
     if (!p) throw new NotFoundException('Pedido no existe');
-    if (p.estado_pago === EstadoPago.PAGADO) throw new ForbiddenException('No se puede editar un pedido PAGADO');
 
     const d = await this.detalles.findOne({
       where: { id_detalle_pedido: id_detalle, pedido: { id_pedido } },
@@ -445,7 +443,6 @@ export class PedidosService {
   async eliminarItem(id_pedido: number, id_detalle: number) {
     const p = await this.pedidos.findOne({ where: { id_pedido } });
     if (!p) throw new NotFoundException('Pedido no existe');
-    if (p.estado_pago === EstadoPago.PAGADO) throw new ForbiddenException('No se puede editar un pedido PAGADO');
 
     const d = await this.detalles.findOne({
       where: { id_detalle_pedido: id_detalle, pedido: { id_pedido } },
