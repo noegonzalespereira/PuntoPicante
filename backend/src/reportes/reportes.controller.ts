@@ -20,6 +20,17 @@ export class ReportesController {
   }
 
   /**
+   * GET /reportes/por-dia?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+   * Ventas diarias: platos, bebidas, extras y total por cada día del rango.
+   * Roles: GERENTE
+   */
+  @Get('por-dia')
+  @Roles('GERENTE')
+  resumenPorDia(@Query() q: ReportRangeDto) {
+    return this.service.resumenPorDia(q);
+  }
+
+  /**
    * GET /reportes/mermas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
    * Roles: GERENTE
    */

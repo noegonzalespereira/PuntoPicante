@@ -62,9 +62,10 @@ export function AuthProvider({ children }) {
 
       // Redirige según rol
       if (u.rol === 'GERENTE') navigate('/gerente/dashboard', { replace: true });
-      if (u.rol === 'CAJERO') navigate('/cajero/dashboard', { replace: true });
-
-      else throw new Error('No tiene permisos de Gerente');
+      else if (u.rol === 'CAJERO') navigate('/cajero/dashboard', { replace: true });
+      else if (u.rol === 'COCINA') navigate('/cocina', { replace: true });
+      else if (u.rol === 'MESERO') navigate('/mesero', { replace: true });
+      else throw new Error('Rol no reconocido');
     } finally {
       setLoading(false);
     }

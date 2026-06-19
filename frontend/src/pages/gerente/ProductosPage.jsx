@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { productoService } from "../../services/productoService";
 
 import "../../styles/ProductosPage.css";
-import { BsPlusLg,BsFunnel, BsSearch, BsBoxSeam, BsCheckCircle, BsDashCircle, BsPencilSquare, BsTrash, BsGraphUp, BsWallet, BsImage, BsPeopleFill } from "react-icons/bs";
+import { BsPlusLg,BsFunnel, BsSearch, BsBoxSeam, BsCheckCircle, BsDashCircle, BsPencilSquare, BsTrash, BsGraphUp, BsWallet, BsImage, BsPeopleFill, BsXCircle, BsArrowCounterclockwise } from "react-icons/bs";
 import PageHeader from "../../components/molecules/PageHeader";
 
 const ProductoModal = ({ show, handleClose, isEditing, form, setForm, file, setFile, handleSubmit, productToEdit }) => {
@@ -108,6 +108,7 @@ export default function ProductosPage() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ total: 0, activos: 0, inactivos: 0 });
     const [filters, setFilters] = useState({ search: "", tipo: "", activo: "" });
+    const [appliedFilters, setAppliedFilters] = useState({ search: "", tipo: "", activo: "" });
     const [showModal, setShowModal] = useState(false);
     const [editando, setEditando] = useState(null);
     const [form, setForm] = useState({ nombre: "", tipo: "PLATO", precio: "", activo: 1 });
@@ -116,14 +117,14 @@ export default function ProductosPage() {
     const loadProductos = useCallback(async () => {
         try {
             setLoading(true);
-            
+
             const apiFilters = {};
-            if (filters.search) apiFilters.search = filters.search;
-            if (filters.tipo) apiFilters.tipo = filters.tipo;
-            if (filters.activo) apiFilters.activo = filters.activo;
-            
+            if (appliedFilters.search) apiFilters.search = appliedFilters.search;
+            if (appliedFilters.tipo) apiFilters.tipo = appliedFilters.tipo;
+            if (appliedFilters.activo) apiFilters.activo = appliedFilters.activo;
+
             const resp = await productoService.getAll(apiFilters);
-            const data = resp.data || resp.data?.data || []; 
+            const data = resp.data || resp.data?.data || [];
 
             const activos = data.filter((p) => p.activo === 1).length;
             const inactivos = data.filter((p) => p.activo === 0).length;
@@ -136,7 +137,17 @@ export default function ProductosPage() {
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [appliedFilters]);
+
+    function aplicarFiltros() {
+        setAppliedFilters({ ...filters });
+    }
+
+    function restablecerFiltros() {
+        const inicial = { search: "", tipo: "", activo: "" };
+        setFilters(inicial);
+        setAppliedFilters(inicial);
+    }
 
     useEffect(() => {
         loadProductos();
@@ -313,8 +324,11 @@ export default function ProductosPage() {
                             </Col>
 
                             <Col md={3} className="d-flex justify-content-end gap-2">
-                                <Button className="btn-modern btn-buscar" onClick={loadProductos}>
+                                <Button className="btn-modern btn-buscar" onClick={aplicarFiltros}>
                                     <BsSearch className="me-2" /> Aplicar Filtros
+                                </Button>
+                                <Button variant="outline-secondary" className="btn-modern" onClick={restablecerFiltros}>
+                                    <BsArrowCounterclockwise className="me-1" /> Restablecer
                                 </Button>
                                 <Button className="btn-modern btn-nuevo" onClick={() => handleOpenModal(null)}>
                                     <BsPlusLg className="me-2" /> Nuevo

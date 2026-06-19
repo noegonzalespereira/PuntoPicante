@@ -206,8 +206,8 @@ export default function StockPage() {
         try {
             const info = await stockService.getDisponible(fecha_apertura);
 
-            // Guardamos info completa por producto para calcular nueva cantidad_inicial al guardar
             const mapInfo = {};
+            const mapCantidades = {};
             info.platos.forEach((p) => {
                 mapInfo[p.id_producto] = {
                     stock_inicial: p.stock_inicial ?? 0,
@@ -215,25 +215,27 @@ export default function StockPage() {
                     vendido:      p.vendido     ?? 0,
                     merma:        p.merma       ?? 0,
                 };
+                // Pre-rellenar con el disponible actual para que el usuario lo vea y edite
+                mapCantidades[p.id_producto] = p.stock ?? 0;
             });
 
             const { data: base } = await productoService.getAll({ tipo: "PLATO", activo: 1 });
             setPlatos(base || []);
             setInfoPlatos(mapInfo);
-            setCantidades({}); // campo "a añadir" empieza vacío
+            setCantidades(mapCantidades);
         } catch (error) { console.error("Error al cargar apertura existente:", error); }
     };
 
     const guardarApertura = async () => {
         try {
             const items = Object.entries(cantidades)
-                .filter(([_, cant]) => cant !== "" && Number(cant) > 0)
-                .map(([id_producto, adicional]) => {
-                    const info = infoPlatos[id_producto] ?? { stock_inicial: 0 };
+                .filter(([_, cant]) => cant !== "" && cant !== null && cant !== undefined && !isNaN(Number(cant)))
+                .map(([id_producto, nuevoDisponible]) => {
+                    const info = infoPlatos[id_producto] ?? { vendido: 0, merma: 0 };
                     return {
                         id_producto: Number(id_producto),
-                        // nueva cantidad_inicial = lo que había + lo que se añade ahora
-                        cantidad_inicial: info.stock_inicial + Number(adicional),
+                        // cantidad_inicial = nuevo disponible deseado + lo ya vendido + merma
+                        cantidad_inicial: Number(nuevoDisponible) + (info.vendido ?? 0) + (info.merma ?? 0),
                     };
                 });
 
@@ -418,7 +420,7 @@ export default function StockPage() {
     const TabApertura = () => (
         <Card className="stock-card-content">
             <Card.Body>
-                <h4 className="titulo-seccion-card fw-bold">Apertura de Platos del Día</h4>
+                <h4 className="titulo-seccion-card fw-bold">Apertura / Actualización de Stock de Platos</h4>
                 <Row className="mb-4 align-items-end g-3">
                     <Col md={4}>
                         <Form.Label className="fw-bold">Seleccionar Fecha de Apertura</Form.Label>
@@ -443,30 +445,39 @@ export default function StockPage() {
                 {/* Estructura de Grilla para los Platos */}
                 <Row className="lista-platos g-3 mt-3">
                     {platos.length > 0 ? (
-                        platos.map((p) => (
-                            <Col md={3} sm={4} xs={6} key={p.id_producto}>
-                                <Card className='plato-apertura-card'>
-                                    <Card.Body className='d-flex justify-content-between align-items-center p-2'>
-                                        <span className='fw-bold'>{p.nombre}</span>
-                                        <FormControl
-                                            type="number"
-                                            min="0"
-                                            placeholder="Cant."
-                                            className="input-stock-cant"
-                                            value={cantidades[p.id_producto] || ""}
-                                            disabled={esFechaPasadaHandler(fecha_apertura)}
-                                            onChange={(e) => {
-                                                if(esFechaPasadaHandler(fecha_apertura)) return;
-                                                setCantidades({
-                                                    ...cantidades,
-                                                    [p.id_producto]: e.target.value,
-                                                });
-                                            }}
-                                        />
-                                    </Card.Body>
-                                </Card>
-                            </Col>
-                        ))
+                        platos.map((p) => {
+                            const info = infoPlatos[p.id_producto];
+                            return (
+                                <Col md={3} sm={4} xs={6} key={p.id_producto}>
+                                    <Card className='plato-apertura-card'>
+                                        <Card.Body className='p-2'>
+                                            <span className='fw-bold d-block mb-1'>{p.nombre}</span>
+                                            {info && (
+                                                <small className="text-muted d-block mb-1">
+                                                    Vendido: <strong className="text-primary">{info.vendido}</strong>
+                                                    {info.merma > 0 && <> · Merma: <strong className="text-danger">{info.merma}</strong></>}
+                                                </small>
+                                            )}
+                                            <FormControl
+                                                type="number"
+                                                min="0"
+                                                placeholder={info ? "Disponible actual" : "Cant. inicial"}
+                                                className="input-stock-cant"
+                                                value={cantidades[p.id_producto] ?? ""}
+                                                disabled={esFechaPasadaHandler(fecha_apertura)}
+                                                onChange={(e) => {
+                                                    if(esFechaPasadaHandler(fecha_apertura)) return;
+                                                    setCantidades({
+                                                        ...cantidades,
+                                                        [p.id_producto]: e.target.value,
+                                                    });
+                                                }}
+                                            />
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            );
+                        })
                     ) : (
                         <Col xs={12}><p className="text-center text-muted">No hay platos activos registrados.</p></Col>
                     )}

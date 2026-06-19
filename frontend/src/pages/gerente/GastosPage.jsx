@@ -254,8 +254,8 @@ async function eliminarGasto(g) {
                             <Button variant="primary" className="btn-modern" onClick={aplicarFiltros}>
                                 <BsSearch className="me-1" /> Aplicar
                             </Button>
-                            <Button variant="outline-danger" className="btn-modern" onClick={limpiarFiltros}>
-                                <BsXCircle className="me-1" /> Limpiar
+                            <Button variant="outline-secondary" className="btn-modern" onClick={limpiarFiltros}>
+                                <BsXCircle className="me-1" /> Restablecer
                             </Button>
                         </Col>
                     </Row>

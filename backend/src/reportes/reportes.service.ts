@@ -284,4 +284,47 @@ export class ReportesService {
       productos,
     };
   }
+
+  /**
+   * Ventas agrupadas por día (hora Bolivia). Solo pedidos PAGADOS.
+   * Devuelve array de { fecha, platos, bebidas, extras, total, pedidos }
+   */
+  async resumenPorDia(q: ReportRangeDto) {
+    const { ini, fin } = this.rango(q.desde, q.hasta);
+
+    const qb = this.detRepo
+      .createQueryBuilder('d')
+      .innerJoin('d.pedido', 'p')
+      .innerJoin('d.producto', 'pr')
+      .select("DATE(p.created_at AT TIME ZONE 'America/La_Paz')", 'fecha')
+      .addSelect(
+        "SUM(CASE WHEN pr.tipo = 'PLATO' THEN d.subtotal ELSE 0 END)",
+        'platos',
+      )
+      .addSelect(
+        "SUM(CASE WHEN pr.tipo = 'BEBIDA' THEN d.subtotal ELSE 0 END)",
+        'bebidas',
+      )
+      .addSelect(
+        "SUM(CASE WHEN pr.tipo = 'EXTRA' THEN d.subtotal ELSE 0 END)",
+        'extras',
+      )
+      .addSelect('SUM(d.subtotal)', 'total')
+      .addSelect('COUNT(DISTINCT p.id_pedido)', 'pedidos')
+      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
+      .andWhere("p.estado_pago::text = 'PAGADO'")
+      .groupBy("DATE(p.created_at AT TIME ZONE 'America/La_Paz')")
+      .orderBy("DATE(p.created_at AT TIME ZONE 'America/La_Paz')", 'ASC');
+
+    const rows = await qb.getRawMany();
+
+    return rows.map((r) => ({
+      fecha: String(r.fecha).substring(0, 10),
+      platos:  Number(r.platos  ?? 0),
+      bebidas: Number(r.bebidas ?? 0),
+      extras:  Number(r.extras  ?? 0),
+      total:   Number(r.total   ?? 0),
+      pedidos: Number(r.pedidos ?? 0),
+    }));
+  }
 }

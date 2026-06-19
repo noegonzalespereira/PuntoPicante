@@ -140,7 +140,9 @@ const CocinaPage = () => {
 
   // Ítems pendientes dentro de un pedido (con botón "Listo")
   const renderPedidoItemsPendientes = (items, num_mesa, id_pedido) => {
-    const itemsPendientes = (items ?? []).filter((it) => it.estado_item === 'PENDIENTE');
+    const itemsPendientes = (items ?? []).filter(
+      (it) => it.estado_item === 'PENDIENTE' && it.producto?.tipo === 'PLATO'
+    );
 
     if (!itemsPendientes.length) {
       return (
@@ -192,7 +194,10 @@ const CocinaPage = () => {
 
   // Tarjetas de pedidos PENDIENTES
   const mostrarPedidosPendientes = () => {
-    const pendientes = (pedidos ?? []).filter((p) => p.estado_pedido === 'PENDIENTE');
+    const pendientes = (pedidos ?? []).filter((p) =>
+      p.estado_pedido === 'PENDIENTE' &&
+      (p.items ?? []).some(it => it.producto?.tipo === 'PLATO' && it.estado_item === 'PENDIENTE')
+    );
 
     if (!pendientes.length) {
       return (
@@ -237,55 +242,51 @@ const CocinaPage = () => {
       );
     }
 
-    return listos.map((pedido) => (
-      <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
-        <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
-          <Card.Body className="d-flex flex-column">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="card-title text-success">Pedido #{pedido.num_pedido || pedido.id_pedido}</h5>
-              <span className="tag-listo">
-                <BsCheckLg className="me-1" /> Listo
-              </span>
-            </div>
+    return listos.map((pedido) => {
+      const platosDelPedido = (pedido.items ?? []).filter(it => it.producto?.tipo === 'PLATO');
+      return (
+        <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
+          <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
+            <Card.Body className="d-flex flex-column">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h5 className="card-title text-success">Pedido #{pedido.num_pedido || pedido.id_pedido}</h5>
+                <span className="tag-listo">
+                  <BsCheckLg className="me-1" /> Listo
+                </span>
+              </div>
 
-            <hr className="my-3" />
+              <hr className="my-3" />
 
-            <div className="pedido-items-list flex-grow-1">
-              {(pedido.items ?? []).map((item, index) => (
-                <div key={item.id_detalle_pedido} className="mb-3 item-detail">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="flex-grow-1">
-                      <strong className="d-block">{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
-                      <div className="d-flex align-items-center mt-1">
-                        {item.destino === 'MESA' ? (
-                          <Badge bg="info" className="destino-badge me-2">
-                            Mesa {pedido.num_mesa ?? '-'}
-                          </Badge>
-                        ) : (
-                          <Badge bg="secondary" className="destino-badge me-2">
-                            {item.destino}
-                          </Badge>
-                        )}
-                        <Badge
-                          bg={item.estado_item === 'LISTO' ? 'success' : 'warning'}
-                          className="ms-2"
-                          title="Estado del ítem"
-                        >
-                          {item.estado_item}
-                        </Badge>
-                        {item.notas && <small className="text-muted ms-2">Notas: {item.notas}</small>}
+              <div className="pedido-items-list flex-grow-1">
+                {platosDelPedido.map((item, index) => (
+                  <div key={item.id_detalle_pedido} className="mb-3 item-detail">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div className="flex-grow-1">
+                        <strong className="d-block">{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
+                        <div className="d-flex align-items-center mt-1">
+                          {item.destino === 'MESA' ? (
+                            <Badge bg="info" className="destino-badge me-2">
+                              Mesa {pedido.num_mesa ?? '-'}
+                            </Badge>
+                          ) : (
+                            <Badge bg="secondary" className="destino-badge me-2">
+                              {item.destino}
+                            </Badge>
+                          )}
+                          {item.notas && <small className="text-muted ms-2">Notas: {item.notas}</small>}
+                        </div>
                       </div>
+                      <span className="fw-bold">{item.cantidad} x</span>
                     </div>
-                    <span className="fw-bold">{item.cantidad} x</span>
+                    {index < platosDelPedido.length - 1 && <hr className="my-2 dashed-divider" />}
                   </div>
-                  {index < (pedido.items?.length ?? 1) - 1 && <hr className="my-2 dashed-divider" />}
-                </div>
-              ))}
-            </div>
-          </Card.Body>
-        </Card>
-      </Col>
-    ));
+                ))}
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      );
+    });
   };
 
   return (

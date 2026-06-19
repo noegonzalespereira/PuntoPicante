@@ -1,31 +1,24 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BsCashStack, BsCartCheck, BsWallet2, BsSpeedometer2, BsBoxSeam, BsBarChartLine } from "react-icons/bs";
-import logo from '../assets/logo.jpg'
+import { BsClipboardCheck } from "react-icons/bs";
+import logo from '../assets/logo.jpg';
 
-export default function SidebarCajero({ isOpen, onClose }) {
+export default function SidebarMesero({ isOpen, onClose }) {
   const { user, logout } = useAuth();
 
   const menu = [
-    { label: "Dashboard", path: "/cajero/dashboard", icon: <BsSpeedometer2 size={18} /> },
-    { label: "Caja",      path: "/cajero/caja",      icon: <BsCashStack    size={18} /> },
-    { label: "Pedidos",   path: "/cajero/pedidos",   icon: <BsCartCheck    size={18} /> },
-    { label: "Gastos",    path: "/cajero/gastos",    icon: <BsWallet2      size={18} /> },
-    { label: "Inventario",path: "/cajero/inventario",icon: <BsBoxSeam      size={18} /> },
-    { label: "Reportes",  path: "/cajero/reportes",  icon: <BsBarChartLine size={18} /> },
+    { label: "Pedidos", path: "/mesero", icon: <BsClipboardCheck size={18} /> },
   ];
 
   return (
     <>
-      {/* Overlay (solo móvil) */}
       <div
         onClick={onClose}
         className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-lg-none"
         style={{ zIndex: 1040, display: isOpen ? "block" : "none" }}
       />
 
-      {/* Sidebar */}
       <aside
         className="bg-light border-end vh-100 position-fixed top-0 start-0 d-flex flex-column shadow-sm"
         style={{
@@ -35,7 +28,6 @@ export default function SidebarCajero({ isOpen, onClose }) {
           transition: "transform .3s ease",
         }}
       >
-        {/* Header */}
         <div className="text-center p-3 border-bottom">
           <img
             src={logo}
@@ -44,10 +36,9 @@ export default function SidebarCajero({ isOpen, onClose }) {
             style={{ width: 60, height: 60, objectFit: "contain" }}
           />
           <h5 className="mb-0" style={{ color: "#8b1a16" }}>El Punto Picante</h5>
-          <small className="text-muted">Módulo Cajero</small>
+          <small className="text-muted">Módulo Mesero</small>
         </div>
 
-        {/* Menú */}
         <nav className="flex-grow-1 p-2">
           <ul className="nav nav-pills flex-column gap-1">
             {menu.map((item) => (
@@ -72,10 +63,9 @@ export default function SidebarCajero({ isOpen, onClose }) {
           </ul>
         </nav>
 
-        {/* Usuario + Logout */}
         <div className="border-top p-3 bg-white">
           <div className="mb-2 p-2 bg-light rounded text-center">
-            <strong>{user?.nombre || "Cajero"}</strong>
+            <strong>{user?.nombre || "Mesero"}</strong>
             <div className="small text-muted">{user?.rol}</div>
           </div>
           <button

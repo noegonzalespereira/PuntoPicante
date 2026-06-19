@@ -4,7 +4,7 @@ import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { usuarioService } from "../../services/usuariosService";
 import "../../styles/UsuariosPage.css";
-import { BsCalendar, BsFunnel, BsSearch, BsPencil, BsTrash, BsPeopleFill, BsPersonPlusFill, BsPersonLinesFill, BsCheckCircle, BsXCircle, BsLock, BsListNested } from "react-icons/bs";
+import { BsCalendar, BsFunnel, BsSearch, BsPencil, BsTrash, BsPeopleFill, BsPersonPlusFill, BsPersonLinesFill, BsCheckCircle, BsXCircle, BsLock, BsListNested, BsArrowCounterclockwise } from "react-icons/bs";
 import PageHeader from "../../components/molecules/PageHeader";
 
 
@@ -41,6 +41,7 @@ const UsuarioModal = ({ show, handleClose, isEditing, form, setForm, handleSubmi
                             <option value="GERENTE">Gerente</option>
                             <option value="CAJERO">Cajero</option>
                             <option value="COCINA">Cocina</option>
+                            <option value="MESERO">Mesero</option>
                         </Form.Select>
                     </Col>
                 </Row>
@@ -61,6 +62,7 @@ export default function UsuariosPage() {
     // ESTADOS
     const [usuarios, setUsuarios] = useState([]);
     const [filtro, setFiltro] = useState({ nombre: "", rol: "Todos" });
+    const [filtroActivo, setFiltroActivo] = useState({ nombre: "", rol: "Todos" });
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -77,7 +79,7 @@ export default function UsuariosPage() {
     const cargarUsuarios = useCallback(async () => {
         try {
             setLoading(true);
-            const resp = await usuarioService.getAll(filtro);
+            const resp = await usuarioService.getAll(filtroActivo);
             
             // CORRECCIÓN CLAVE: Si NestJS devuelve el array directamente, usamos 'resp'. 
             // Si lo envuelve en 'data', usamos 'resp.data'.
@@ -94,11 +96,21 @@ export default function UsuariosPage() {
         } finally {
             setLoading(false);
         }
-    }, [filtro]);
+    }, [filtroActivo]);
 
     useEffect(() => {
         cargarUsuarios();
     }, [cargarUsuarios]);
+
+    function aplicarFiltros() {
+        setFiltroActivo({ ...filtro });
+    }
+
+    function restablecerFiltros() {
+        const inicial = { nombre: "", rol: "Todos" };
+        setFiltro(inicial);
+        setFiltroActivo(inicial);
+    }
 
 
     // 4. HANDLERS CRUD
@@ -181,9 +193,9 @@ export default function UsuariosPage() {
 
     const listaFiltradaAplicada = usuarios.filter(
         (u) =>
-            (filtro.rol === "Todos" || u.rol === filtro.rol) &&
-            (u.nombre.toLowerCase().includes(filtro.nombre.toLowerCase()) ||
-             u.email.toLowerCase().includes(filtro.nombre.toLowerCase()))
+            (filtroActivo.rol === "Todos" || u.rol === filtroActivo.rol) &&
+            (u.nombre.toLowerCase().includes(filtroActivo.nombre.toLowerCase()) ||
+             u.email.toLowerCase().includes(filtroActivo.nombre.toLowerCase()))
     );
 
     // 6. RENDERIZACIÓN DE VISTA (JSX)
@@ -278,8 +290,11 @@ export default function UsuariosPage() {
                                         </Form.Select>
                                     </Col>
                                     <Col md={4} lg={3} className="d-flex justify-content-end gap-2">
-                                        <Button className="btn-modern btn-buscar" onClick={cargarUsuarios}>
+                                        <Button className="btn-modern btn-buscar" onClick={aplicarFiltros}>
                                             <BsSearch className="me-2" /> Aplicar Filtros
+                                        </Button>
+                                        <Button variant="outline-secondary" className="btn-modern" onClick={restablecerFiltros}>
+                                            <BsArrowCounterclockwise className="me-1" /> Restablecer
                                         </Button>
                                     </Col>
                                 </Row>

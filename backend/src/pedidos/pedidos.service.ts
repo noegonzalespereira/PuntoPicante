@@ -14,7 +14,7 @@ import { InventarioService } from '../inventario/inventario.service';
 import { timeStamp } from 'console';
 import { domainToASCII } from 'url';
 
-type Rol = 'GERENTE' | 'CAJERO' | 'COCINA';
+type Rol = 'GERENTE' | 'CAJERO' | 'COCINA' | 'MESERO';
 
 @Injectable()
 export class PedidosService {
@@ -683,6 +683,17 @@ async resumenCocinaPorCaja(id_caja?: number) {
 
       await mgr.update(Pedido,{id_pedido},{estado_pedido:nuevoEstado})
       return nuevoEstado;
+  }
+
+  async marcarPedidoEntregado(id_pedido: number) {
+    const p = await this.pedidos.findOne({ where: { id_pedido } });
+    if (!p) throw new NotFoundException('Pedido no existe');
+    if (p.estado_pedido !== EstadoPedido.LISTO)
+      throw new BadRequestException('Solo se puede entregar un pedido en estado LISTO');
+
+    p.estado_pedido = EstadoPedido.ENTREGADO;
+    await this.pedidos.save(p);
+    return { ok: true, estado_pedido: p.estado_pedido };
   }
 
   async marcarItemListo(id_detalle: number) {

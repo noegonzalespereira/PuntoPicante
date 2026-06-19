@@ -9,7 +9,7 @@ import { DetallePedido } from './detalle-pedido.entity';
 export enum TipoPedido   { MESA = 'MESA', LLEVAR = 'LLEVAR',MIXTO='MIXTO' }
 export enum MetodoPago   { EFECTIVO = 'EFECTIVO', QR = 'QR' }
 export enum EstadoPago   { SIN_PAGAR = 'SIN_PAGAR', PAGADO = 'PAGADO' }
-export enum EstadoPedido {PENDIENTE='PENDIENTE',LISTO='LISTO'}
+export enum EstadoPedido {PENDIENTE='PENDIENTE',LISTO='LISTO',ENTREGADO='ENTREGADO'}
 @Entity('pedido')
 export class Pedido {
   @PrimaryGeneratedColumn({ name: 'id_pedido' })

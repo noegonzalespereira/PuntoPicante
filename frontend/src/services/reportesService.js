@@ -10,4 +10,13 @@ export const reportesService = {
     const { data } = await api.get("/reportes/resumen", { params });
     return data;
   },
+
+  // Ventas desglosadas por día (solo pedidos PAGADOS).
+  async getPorDia({ desde, hasta } = {}) {
+    const params = {};
+    if (desde) params.desde = desde;
+    if (hasta) params.hasta = hasta;
+    const { data } = await api.get("/reportes/por-dia", { params });
+    return data;
+  },
 };

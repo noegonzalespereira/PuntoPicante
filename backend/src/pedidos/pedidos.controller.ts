@@ -21,7 +21,7 @@ export class PedidosController {
 
 
 @Get('cocina')
-@Roles('COCINA', 'GERENTE')
+@Roles('COCINA', 'GERENTE', 'MESERO')
 async cocinaLista(
   @Query('id_caja') id_caja?: string,
   @Query('estado') estado?: EstadoPedido,
@@ -35,7 +35,7 @@ async cocinaLista(
 }
 
 @Get('cocina/listos')
-@Roles('COCINA', 'GERENTE')
+@Roles('COCINA', 'GERENTE', 'MESERO')
 async cocinaListos(@Query('id_caja') id_caja?: string) {
   return this.service.listaParaCocinaPorCaja({
     id_caja: id_caja ? Number(id_caja) : undefined,
@@ -44,7 +44,7 @@ async cocinaListos(@Query('id_caja') id_caja?: string) {
 }
 
 @Get('cocina/resumen')
-@Roles('COCINA', 'GERENTE')
+@Roles('COCINA', 'GERENTE', 'MESERO')
 async cocinaResumen(@Query('id_caja') id_caja?: string) {
   return this.service.resumenCocinaPorCaja(id_caja ? Number(id_caja) : undefined);
 }
@@ -110,6 +110,13 @@ async cocinaResumen(@Query('id_caja') id_caja?: string) {
   @Roles('COCINA', 'GERENTE')
   marcarItemDespachado(@Param('detalleId') detalleId: string) {
     return this.service.marcarItemListo(Number(detalleId));
+  }
+
+  /** Marcar pedido como ENTREGADO — MESERO/GERENTE */
+  @Patch(':id/entregar')
+  @Roles('MESERO', 'GERENTE')
+  marcarEntregado(@Param('id') id: string) {
+    return this.service.marcarPedidoEntregado(Number(id));
   }
   
  

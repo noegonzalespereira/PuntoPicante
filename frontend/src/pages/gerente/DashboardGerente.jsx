@@ -50,9 +50,10 @@ const DashboardGerente = () => {
     totalVendido: '0.00',
     totalGastos: '0.00',
     pedidosPendientes: 0,
-    stockDetalle: { platos: [], bebidas: [] },
+    stockDetalle: { platos: [], bebidas: [], extras: [] },
     platosVendidos: 0,
     bebidasVendidas: 0,
+    extrasVendidos: 0,
   });
 
 
@@ -152,11 +153,13 @@ try {
       const totalGastos = Number(gastosResp?.total_gastos || 0);
 
       // E) Stock del día de referencia
-      const stockResp = await stockService.getDisponible(fechaRef).catch(() => ({ platos: [], bebidas: [] }));
-      const platos = stockResp?.platos || [];
+      const stockResp = await stockService.getDisponible(fechaRef).catch(() => ({ platos: [], bebidas: [], extras: [] }));
+      const platos  = stockResp?.platos  || [];
       const bebidas = stockResp?.bebidas || [];
-      const platosVendidos = platos.reduce((acc, p) => acc + Number(p.vendido || 0), 0);
+      const extras  = stockResp?.extras  || [];
+      const platosVendidos  = platos.reduce((acc, p) => acc + Number(p.vendido || 0), 0);
       const bebidasVendidas = bebidas.reduce((acc, b) => acc + Number(b.vendido || 0), 0);
+      const extrasVendidos  = extras.reduce((acc, e) => acc + Number(e.vendido || 0), 0);
 
       setStats({
         fechaRef,
@@ -169,6 +172,7 @@ try {
         stockDetalle: stockResp,
         platosVendidos,
         bebidasVendidas,
+        extrasVendidos,
       });
     } catch (error) {
       console.error('Error al cargar dashboard:', error);
@@ -213,6 +217,7 @@ try {
   const renderStockTable = () => {
     const platos  = stats.stockDetalle?.platos  || [];
     const bebidas = stats.stockDetalle?.bebidas || [];
+    const extras  = stats.stockDetalle?.extras  || [];
 
     const StockSeccion = ({ items, labelCol, emptyMsg }) => (
       <Table responsive hover size="sm" className="tabla-stock-dashboard tabla-responsive-cards mb-0">
@@ -260,6 +265,15 @@ try {
               Bebidas vendidas: <span className="text-marron">{stats.bebidasVendidas} uds.</span>
             </p>
             <StockSeccion items={bebidas} labelCol="Bebida" emptyMsg="" />
+          </>
+        )}
+
+        {extras.length > 0 && (
+          <>
+            <p className="text-muted mb-1 fw-bold mt-3">
+              Extras vendidos: <span className="text-marron">{stats.extrasVendidos} uds.</span>
+            </p>
+            <StockSeccion items={extras} labelCol="Extra" emptyMsg="" />
           </>
         )}
       </>

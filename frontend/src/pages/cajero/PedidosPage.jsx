@@ -117,7 +117,8 @@ export default function PedidosPage() {
   const productosFiltrados = useMemo(() => productos.filter((p) => {
     const cat = categoriaActiva === "Todos" || p.tipo === categoriaActiva;
     const search = p.nombre.toLowerCase().includes(searchProducto.toLowerCase());
-    const tieneStock = (stockMap.get(p.id_producto) ?? 0) > 0;
+    const disponible = stockMap.get(p.id_producto);
+    const tieneStock = disponible === undefined || disponible > 0;
     return cat && search && tieneStock;
   }), [productos, categoriaActiva, searchProducto, stockMap]);
 

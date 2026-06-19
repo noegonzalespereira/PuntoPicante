@@ -13,6 +13,7 @@ export enum Rol {
   CAJERO = 'CAJERO',
   GERENTE = 'GERENTE',
   COCINA = 'COCINA',
+  MESERO = 'MESERO',
 }
 
 @Entity('usuarios')

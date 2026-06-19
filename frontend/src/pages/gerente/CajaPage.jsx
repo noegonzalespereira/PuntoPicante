@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { cajaService } from "../../services/cajaService";
 import { useAuth } from "../../context/AuthContext";
 import { Container, Row, Col, Card, Button, InputGroup, FormControl, Spinner, Table, Form, Badge } from "react-bootstrap";
-import { BsCalendar, BsFillLockFill, BsFillUnlockFill, BsSearch, BsPersonCircle, BsCashStack, BsGraphUp } from "react-icons/bs"; 
+import { BsCalendar, BsFillLockFill, BsFillUnlockFill, BsSearch, BsPersonCircle, BsCashStack, BsGraphUp, BsArrowCounterclockwise } from "react-icons/bs";
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import "../../styles/CajaPage.css";
@@ -14,6 +14,7 @@ export default function CajaPage() {
   const [montoApertura, setMontoApertura] = useState("");
   const [historial, setHistorial] = useState([]);
   const [filters, setFilters] = useState({ desde: "", hasta: "" });
+  const [appliedFilters, setAppliedFilters] = useState({ desde: "", hasta: "" });
   const [loading, setLoading] = useState(true);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
 
@@ -22,8 +23,8 @@ export default function CajaPage() {
     try {
       const data = await cajaService.getHistorial({
         cajeroId: "",
-        desde: filters.desde || "", 
-        hasta: filters.hasta || ""  
+        desde: appliedFilters.desde || "",
+        hasta: appliedFilters.hasta || ""
       });
       setHistorial(data || []);
     } catch (err) {
@@ -31,7 +32,17 @@ export default function CajaPage() {
     } finally {
       setLoadingHistorial(false);
     }
-  }, [filters]);
+  }, [appliedFilters]);
+
+  function aplicarFiltros() {
+    setAppliedFilters({ ...filters });
+  }
+
+  function restablecerFiltros() {
+    const inicial = { desde: "", hasta: "" };
+    setFilters(inicial);
+    setAppliedFilters(inicial);
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -256,10 +267,13 @@ export default function CajaPage() {
                       </InputGroup>
                     </Form.Group>
                   </Col>
-                  <Col lg={4} xs={3} className="text-end text-lg-start">
-                    <Button variant="primary" onClick={loadHistorial} disabled={loadingHistorial} className="btn-caja-filtro">
+                  <Col lg={4} xs={3} className="text-end text-lg-start d-flex gap-2">
+                    <Button variant="primary" onClick={aplicarFiltros} disabled={loadingHistorial} className="btn-caja-filtro">
                       {loadingHistorial ? <Spinner as="span" animation="border" size="sm" className="me-2" /> : <BsSearch className="me-2" />}
                       Buscar Historial
+                    </Button>
+                    <Button variant="outline-secondary" onClick={restablecerFiltros} disabled={loadingHistorial} className="btn-caja-filtro">
+                      <BsArrowCounterclockwise className="me-1" /> Restablecer
                     </Button>
                   </Col>
                 </Row>

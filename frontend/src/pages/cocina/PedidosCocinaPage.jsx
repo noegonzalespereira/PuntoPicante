@@ -129,7 +129,9 @@ const CocinaPage = () => {
   };
 
   const renderPedidoItemsPendientes = (items, pedido, id_pedido) => {
-    const itemsPendientes = (items ?? []).filter((it) => it.estado_item === 'PENDIENTE');
+    const itemsPendientes = (items ?? []).filter(
+      (it) => it.estado_item === 'PENDIENTE' && it.producto?.tipo === 'PLATO'
+    );
 
     if (!itemsPendientes.length) {
       return (
@@ -169,7 +171,10 @@ const CocinaPage = () => {
   };
 
   const mostrarPedidosPendientes = () => {
-    const pendientes = (pedidos ?? []).filter((p) => p.estado_pedido === 'PENDIENTE');
+    const pendientes = (pedidos ?? []).filter((p) =>
+      p.estado_pedido === 'PENDIENTE' &&
+      (p.items ?? []).some(it => it.producto?.tipo === 'PLATO' && it.estado_item === 'PENDIENTE')
+    );
 
     if (!pendientes.length) {
       return (
@@ -221,7 +226,7 @@ const CocinaPage = () => {
     }
 
     return listos.map((pedido) => {
-      const esAmbB = pedido.ambiente === 'B';
+      const platosDelPedido = (pedido.items ?? []).filter(it => it.producto?.tipo === 'PLATO');
       return (
         <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
           <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
@@ -240,7 +245,7 @@ const CocinaPage = () => {
               )}
               <hr className="my-2" />
               <div className="pedido-items-list flex-grow-1">
-                {(pedido.items ?? []).map((item, index) => (
+                {platosDelPedido.map((item, index) => (
                   <div key={item.id_detalle_pedido} className="mb-3 item-detail">
                     <div className="d-flex justify-content-between align-items-center">
                       <div className="flex-grow-1">
@@ -250,15 +255,12 @@ const CocinaPage = () => {
                             ? getDestinoLabel(pedido, item)
                             : <Badge bg="secondary" className="destino-badge me-2">{item.destino}</Badge>
                           }
-                          <Badge bg={item.estado_item === 'LISTO' ? 'success' : 'warning'} className="ms-2">
-                            {item.estado_item}
-                          </Badge>
                           {item.notas && <small className="text-muted ms-2">Notas: {item.notas}</small>}
                         </div>
                       </div>
                       <span className="fw-bold">{item.cantidad} x</span>
                     </div>
-                    {index < (pedido.items?.length ?? 1) - 1 && <hr className="my-2 dashed-divider" />}
+                    {index < platosDelPedido.length - 1 && <hr className="my-2 dashed-divider" />}
                   </div>
                 ))}
               </div>

@@ -296,8 +296,15 @@ const rango = useMemo(() => {
     cargar();
   }, [cargar]);
   
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const { desde, hasta } = rango;
+
+    // Cargar desglose diario antes de construir el PDF
+    let diasData = [];
+    try {
+      diasData = await reportesService.getPorDia({ desde, hasta });
+    } catch {}
+
     const doc = new jsPDF("p", "mm", "a4");
     const pageW  = doc.internal.pageSize.getWidth();
     const pageH  = doc.internal.pageSize.getHeight();
@@ -454,6 +461,86 @@ const rango = useMemo(() => {
     });
     y += bh + 8;
 
+    // ── DESGLOSE DIARIO ──────────────────────────────────────────
+    if (diasData.length > 0) {
+      seccion("Resumen por Día", [60, 60, 60]);
+
+      // Solo mostrar columna Extras si hay valores
+      const hayExtras = diasData.some(d => d.extras > 0);
+      const DW = hayExtras
+        ? [22, CW - 22 - 28 - 28 - 28 - 18, 28, 28, 28, 18]
+        : [22, CW - 22 - 28 - 28 - 18,       28, 28, 18];
+
+      const hdrDia = hayExtras
+        ? [
+            { text: "Fecha",    w: DW[0] },
+            { text: "Pedidos",  w: DW[1] },
+            { text: "Platos",   w: DW[2], align: "right" },
+            { text: "Bebidas",  w: DW[3], align: "right" },
+            { text: "Extras",   w: DW[4], align: "right" },
+            { text: "Total Bs", w: DW[5], align: "right" },
+          ]
+        : [
+            { text: "Fecha",    w: DW[0] },
+            { text: "Pedidos",  w: DW[1] },
+            { text: "Platos",   w: DW[2], align: "right" },
+            { text: "Bebidas",  w: DW[3], align: "right" },
+            { text: "Total Bs", w: DW[4], align: "right" },
+          ];
+
+      filaHeader(hdrDia);
+
+      let sumDPlatos = 0, sumDBebidas = 0, sumDExtras = 0, sumDTotal = 0, sumDPedidos = 0;
+      diasData.forEach((d, i) => {
+        sumDPlatos  += d.platos;
+        sumDBebidas += d.bebidas;
+        sumDExtras  += d.extras;
+        sumDTotal   += d.total;
+        sumDPedidos += d.pedidos;
+
+        const filaDia = hayExtras
+          ? [
+              { text: formatFechaVisual(d.fecha),          w: DW[0] },
+              { text: String(d.pedidos),                   w: DW[1] },
+              { text: d.platos.toFixed(2),                 w: DW[2], align: "right" },
+              { text: d.bebidas.toFixed(2),                w: DW[3], align: "right" },
+              { text: d.extras.toFixed(2),                 w: DW[4], align: "right" },
+              { text: d.total.toFixed(2),                  w: DW[5], align: "right" },
+            ]
+          : [
+              { text: formatFechaVisual(d.fecha),          w: DW[0] },
+              { text: String(d.pedidos),                   w: DW[1] },
+              { text: d.platos.toFixed(2),                 w: DW[2], align: "right" },
+              { text: d.bebidas.toFixed(2),                w: DW[3], align: "right" },
+              { text: d.total.toFixed(2),                  w: DW[4], align: "right" },
+            ];
+
+        fila(filaDia, i % 2 === 0 ? C.muyClaro : null);
+      });
+
+      hline(y); y += 1;
+
+      const totalDia = hayExtras
+        ? [
+            { text: `TOTAL (${diasData.length} días)`, w: DW[0] },
+            { text: String(sumDPedidos),               w: DW[1] },
+            { text: sumDPlatos.toFixed(2),             w: DW[2], align: "right" },
+            { text: sumDBebidas.toFixed(2),            w: DW[3], align: "right" },
+            { text: sumDExtras.toFixed(2),             w: DW[4], align: "right" },
+            { text: sumDTotal.toFixed(2),              w: DW[5], align: "right" },
+          ]
+        : [
+            { text: `TOTAL (${diasData.length} días)`, w: DW[0] },
+            { text: String(sumDPedidos),               w: DW[1] },
+            { text: sumDPlatos.toFixed(2),             w: DW[2], align: "right" },
+            { text: sumDBebidas.toFixed(2),            w: DW[3], align: "right" },
+            { text: sumDTotal.toFixed(2),              w: DW[4], align: "right" },
+          ];
+
+      filaTotal(totalDia);
+      y += 4;
+    }
+
     // ── PRODUCTOS POR CATEGORÍA ───────────────────────────────────
     const platos  = inventario.vendidosDetalle.filter(p => p.tipo === "PLATO");
     const bebidas = inventario.vendidosDetalle.filter(p => p.tipo === "BEBIDA");
@@ -483,73 +570,6 @@ const rango = useMemo(() => {
     font("bold", 13);
     txt(`Bs ${(totalPlatosBs + totalBebidasBs).toFixed(2)}`, M + CW - 2, y + 9, { align: "right" });
     y += 17;
-
-    // ── PEDIDOS POR TIPO ─────────────────────────────────────────
-    seccion("Pedidos por Tipo", [60, 60, 60]);
-    guard(18);
-    const pedItems = [
-      { label: "Para Comer",  val: inventario.comer,  bg: C.muyClaro, tc: C.marron },
-      { label: "Para Llevar", val: inventario.llevar, bg: C.muyClaro, tc: C.marron },
-      { label: "Mixtos",      val: inventario.mixtos, bg: C.muyClaro, tc: C.marron },
-      { label: "Total Despachados", val: kpis.pedidosDespachados, bg: C.verdeClaro, tc: C.verde },
-    ];
-    const pw = CW / 4;
-    pedItems.forEach(({ label, val, bg, tc }, i) => {
-      fill(bg); rect(M + i * pw + (i > 0 ? 1 : 0), y, pw - (i > 0 ? 1 : 0), 16);
-      color(tc); font("bold", 14);
-      txt(String(val), M + i * pw + pw / 2, y + 9,  { align: "center" });
-      color(C.medio); font("normal", 6.5);
-      txt(label,       M + i * pw + pw / 2, y + 14, { align: "center" });
-    });
-    y += 20;
-    color(C.medio); font("normal", 7.5);
-    txt(`Ítems a mesa: ${inventario.platosMesa}    ·    Ítems para llevar: ${inventario.platosLlevar}`, M, y);
-    y += 8;
-
-    // ── MÉTODOS DE PAGO ──────────────────────────────────────────
-    seccion("Métodos de Pago", C.azul);
-    guard(16);
-    const mw = (CW - 4) / 2;
-    [
-      { label: "Efectivo", val: caja.efectivo, bg: C.azulClaro },
-      { label: "QR / Transferencia", val: caja.qr, bg: C.azulClaro },
-    ].forEach(({ label, val, bg }, i) => {
-      const mx = M + i * (mw + 4);
-      fill(bg); rect(mx, y, mw, 14);
-      color(C.medio); font("normal", 7.5);
-      txt(label, mx + 4, y + 6);
-      color(C.oscuro); font("bold", 11);
-      txt(`Bs ${val.toFixed(2)}`, mx + 4, y + 12);
-    });
-    y += 18;
-
-    // ── CAJA ─────────────────────────────────────────────────────
-    seccion("Caja del Período", C.marron);
-    guard(10);
-    const cajaItems = [
-      { label: "Apertura",      val: `Bs ${caja.apertura.toFixed(2)}` },
-      { label: "Cierre Físico", val: `Bs ${caja.cierre.toFixed(2)}` },
-      { label: "Responsable",   val: caja.cajero },
-    ];
-    color(C.oscuro); font("normal", 8.5);
-    cajaItems.forEach(({ label, val }, i) => {
-      txt(`${label}: `, M + i * (CW / 3) + 2, y + 4);
-      font("bold", 8.5);
-      txt(val, M + i * (CW / 3) + 2 + doc.getTextWidth(`${label}: `), y + 4);
-      font("normal", 8.5);
-    });
-    y += 10;
-
-    // ── MERMAS ───────────────────────────────────────────────────
-    if (inventario.mermasUnidades > 0 || inventario.mermasCosto > 0) {
-      seccion("Mermas", C.rojo);
-      guard(10);
-      color(C.oscuro); font("normal", 8.5);
-      txt(`Unidades: ${inventario.mermasUnidades} uds.`, M + 2, y + 4);
-      color(C.rojo); font("bold", 8.5);
-      txt(`Costo estimado: -Bs ${Number(inventario.mermasCosto).toFixed(2)}`, M + 70, y + 4);
-      y += 10;
-    }
 
     // ── GASTOS ───────────────────────────────────────────────────
     if (gastosDetalle.length > 0) {
