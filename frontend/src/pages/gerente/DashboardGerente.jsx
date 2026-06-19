@@ -268,14 +268,6 @@ try {
           </>
         )}
 
-        {extras.length > 0 && (
-          <>
-            <p className="text-muted mb-1 fw-bold mt-3">
-              Extras vendidos: <span className="text-marron">{stats.extrasVendidos} uds.</span>
-            </p>
-            <StockSeccion items={extras} labelCol="Extra" emptyMsg="" />
-          </>
-        )}
       </>
     );
   };
