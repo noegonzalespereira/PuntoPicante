@@ -160,9 +160,14 @@ export class PedidosService {
     if (!caja) throw new NotFoundException('Caja no existe');
     if (caja.estado !== EstadoCaja.ABIERTA) throw new BadRequestException('La caja no está ABIERTA');
 
-    if(dto.tipo_pedido === TipoPedido.MESA || dto.tipo_pedido === TipoPedido.MIXTO){
-      if(!dto.num_mesa || dto.num_mesa < 1){
-        throw new BadRequestException('num_mesa / num_ficha es obligatorio para pedidos de mesa');
+    if (dto.tipo_pedido === TipoPedido.MESA || dto.tipo_pedido === TipoPedido.MIXTO) {
+      if (dto.ambiente === 'OFICINA') {
+        if (!dto.nombre_cliente?.trim())
+          throw new BadRequestException('El nombre del cliente es obligatorio para pedidos de Oficina');
+        dto.num_mesa = null;
+      } else {
+        if (!dto.num_mesa || dto.num_mesa < 1)
+          throw new BadRequestException('El número de mesa es obligatorio para pedidos de Patio');
       }
     }
     else {
@@ -217,7 +222,8 @@ export class PedidosService {
         caja: { id_caja: dto.id_caja },
         tipo_pedido: dto.tipo_pedido,
         num_mesa: dto.num_mesa,
-        ambiente: dto.ambiente ?? 'A',
+        ambiente: dto.ambiente ?? 'PATIO',
+        nombre_cliente: dto.nombre_cliente ?? null,
         metodo_pago: dto.metodo_pago,
         estado_pago: dto.estado_pago,
         estado_pedido: EstadoPedido.PENDIENTE,

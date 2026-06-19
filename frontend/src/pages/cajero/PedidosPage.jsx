@@ -57,7 +57,8 @@ export default function PedidosPage() {
   const [pedidoActual, setPedidoActual] = useState({
     tipo_pedido: "MESA",
     num_mesa: "",
-    ambiente: "A",
+    ambiente: "PATIO",
+    nombre_cliente: "",
     estado_pago: "SIN_PAGAR",
     metodo_pago: null,
     items: [],
@@ -165,11 +166,16 @@ export default function PedidosPage() {
       return false;
     }
     if (!appendContext && esMesaRequerida(pedidoActual.tipo_pedido)) {
-      const nMesa = Number(pedidoActual.num_mesa);
-      if (!mesaValida(nMesa)) {
-        const label = pedidoActual.ambiente === "B" ? "ficha" : "mesa";
-        Swal.fire("⚠️", `Seleccione un número de ${label} válido`, "warning");
-        return false;
+      if (pedidoActual.ambiente === "OFICINA") {
+        if (!pedidoActual.nombre_cliente?.trim()) {
+          Swal.fire("⚠️", "Ingrese el nombre del cliente para el pedido de Oficina", "warning");
+          return false;
+        }
+      } else {
+        if (!mesaValida(Number(pedidoActual.num_mesa))) {
+          Swal.fire("⚠️", "Seleccione un número de mesa válido", "warning");
+          return false;
+        }
       }
     }
     if (!appendContext && pedidoActual.estado_pago === "PAGADO" && !pedidoActual.metodo_pago) {
@@ -192,8 +198,9 @@ export default function PedidosPage() {
     const payload = {
       id_caja: cajaAbierta?.id_caja,
       tipo_pedido: pedidoActual.tipo_pedido,
-      num_mesa: esMesaRequerida(pedidoActual.tipo_pedido) ? Number(pedidoActual.num_mesa) : null,
-      ambiente: esMesaRequerida(pedidoActual.tipo_pedido) ? pedidoActual.ambiente : 'A',
+      num_mesa: (esMesaRequerida(pedidoActual.tipo_pedido) && pedidoActual.ambiente === "PATIO") ? Number(pedidoActual.num_mesa) : null,
+      ambiente: esMesaRequerida(pedidoActual.tipo_pedido) ? pedidoActual.ambiente : 'PATIO',
+      nombre_cliente: pedidoActual.ambiente === "OFICINA" ? pedidoActual.nombre_cliente.trim() : null,
       estado_pago: pedidoActual.estado_pago,
       metodo_pago: pedidoActual.estado_pago === "PAGADO" ? pedidoActual.metodo_pago : null,
       items: pedidoActual.items.map((i) => ({
@@ -742,51 +749,72 @@ export default function PedidosPage() {
                     <Form.Group className="mb-2">
                       <Form.Label>Ambiente</Form.Label>
                       <div className="d-flex gap-2">
-                        {["A", "B"].map((amb) => (
+                        {[
+                          { val: "PATIO",   label: "🌿 Patio",   variant: "success" },
+                          { val: "OFICINA", label: "🏢 Oficina", variant: "primary" },
+                        ].map(({ val, label, variant }) => (
                           <Button
-                            key={amb}
+                            key={val}
                             size="sm"
-                            variant={pedidoActual.ambiente === amb ? (amb === "B" ? "warning" : "primary") : "outline-secondary"}
+                            variant={pedidoActual.ambiente === val ? variant : "outline-secondary"}
                             onClick={() =>
                               !appendContext &&
-                              setPedidoActual((prev) => ({ ...prev, ambiente: amb, num_mesa: "" }))
+                              setPedidoActual((prev) => ({
+                                ...prev,
+                                ambiente: val,
+                                num_mesa: "",
+                                nombre_cliente: "",
+                              }))
                             }
                             disabled={!!appendContext}
                             style={{ flex: 1, fontWeight: "bold" }}
                           >
-                            {amb === "A" ? "🏠 Ambiente A" : "🚪 Ambiente B"}
+                            {label}
                           </Button>
                         ))}
                       </div>
                     </Form.Group>
 
-                    {/* Número de mesa (A) o ficha (B) */}
-                    <Form.Group className="mb-3">
-                      <Form.Label>
-                        {pedidoActual.ambiente === "B" ? "Número de Ficha" : "Número de Mesa"}
-                      </Form.Label>
-                      <Form.Select
-                        value={pedidoActual.num_mesa}
-                        onChange={(e) =>
-                          setPedidoActual((prev) => ({ ...prev, num_mesa: e.target.value }))
-                        }
-                        disabled={!!appendContext}
-                      >
-                        <option value="">
-                          {pedidoActual.ambiente === "B" ? "— Seleccionar ficha —" : "— Seleccionar mesa —"}
-                        </option>
-                        {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>
-                            {pedidoActual.ambiente === "B" ? `Ficha ${n}` : `Mesa ${n}`}
-                          </option>
-                        ))}
-                      </Form.Select>
-                      {appendContext && (
-                        <Form.Text className="text-muted">
-                          Usando la mesa del pedido #{appendContext.num_pedido}.
-                        </Form.Text>
-                      )}
-                    </Form.Group>
+                    {/* PATIO → número de mesa */}
+                    {pedidoActual.ambiente === "PATIO" && (
+                      <Form.Group className="mb-3">
+                        <Form.Label>Número de Mesa</Form.Label>
+                        <Form.Select
+                          value={pedidoActual.num_mesa}
+                          onChange={(e) =>
+                            setPedidoActual((prev) => ({ ...prev, num_mesa: e.target.value }))
+                          }
+                          disabled={!!appendContext}
+                        >
+                          <option value="">— Seleccionar mesa —</option>
+                          {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>Mesa {n}</option>
+                          ))}
+                        </Form.Select>
+                        {appendContext && (
+                          <Form.Text className="text-muted">
+                            Usando la mesa del pedido #{appendContext.num_pedido}.
+                          </Form.Text>
+                        )}
+                      </Form.Group>
+                    )}
+
+                    {/* OFICINA → nombre del cliente */}
+                    {pedidoActual.ambiente === "OFICINA" && (
+                      <Form.Group className="mb-3">
+                        <Form.Label>Nombre del Cliente</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Ej: María, Mesa del fondo..."
+                          value={pedidoActual.nombre_cliente}
+                          onChange={(e) =>
+                            setPedidoActual((prev) => ({ ...prev, nombre_cliente: e.target.value }))
+                          }
+                          disabled={!!appendContext}
+                          maxLength={100}
+                        />
+                      </Form.Group>
+                    )}
                   </>
                 )}
 
@@ -1130,42 +1158,58 @@ export default function PedidosPage() {
                     <Form.Group className="mb-2">
                       <Form.Label>Ambiente</Form.Label>
                       <Form.Select
-                        value={modalEditar.pedido.ambiente ?? "A"}
+                        value={modalEditar.pedido.ambiente ?? "PATIO"}
                         onChange={(e) =>
                           setModalEditar((prev) => ({
                             ...prev,
-                            pedido: { ...prev.pedido, ambiente: e.target.value, num_mesa: "" },
+                            pedido: { ...prev.pedido, ambiente: e.target.value, num_mesa: "", nombre_cliente: "" },
                           }))
                         }
                       >
-                        <option value="A">🏠 Ambiente A</option>
-                        <option value="B">🚪 Ambiente B</option>
+                        <option value="PATIO">🌿 Patio</option>
+                        <option value="OFICINA">🏢 Oficina</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
-                  <Col md={4}>
-                    <Form.Group>
-                      <Form.Label>
-                        {(modalEditar.pedido.ambiente ?? "A") === "B" ? "Número de Ficha" : "Número de Mesa"}
-                      </Form.Label>
-                      <Form.Select
-                        value={modalEditar.pedido.num_mesa ?? ""}
-                        onChange={(e) =>
-                          setModalEditar((prev) => ({
-                            ...prev,
-                            pedido: { ...prev.pedido, num_mesa: e.target.value },
-                          }))
-                        }
-                      >
-                        <option value="">— Seleccionar —</option>
-                        {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>
-                            {(modalEditar.pedido.ambiente ?? "A") === "B" ? `Ficha ${n}` : `Mesa ${n}`}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
+                  {(modalEditar.pedido.ambiente ?? "PATIO") === "PATIO" ? (
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Número de Mesa</Form.Label>
+                        <Form.Select
+                          value={modalEditar.pedido.num_mesa ?? ""}
+                          onChange={(e) =>
+                            setModalEditar((prev) => ({
+                              ...prev,
+                              pedido: { ...prev.pedido, num_mesa: e.target.value },
+                            }))
+                          }
+                        >
+                          <option value="">— Seleccionar mesa —</option>
+                          {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>Mesa {n}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  ) : (
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Nombre del Cliente</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Nombre del cliente"
+                          value={modalEditar.pedido.nombre_cliente ?? ""}
+                          onChange={(e) =>
+                            setModalEditar((prev) => ({
+                              ...prev,
+                              pedido: { ...prev.pedido, nombre_cliente: e.target.value },
+                            }))
+                          }
+                          maxLength={100}
+                        />
+                      </Form.Group>
+                    </Col>
+                  )}
                 </Row>
               )}
 

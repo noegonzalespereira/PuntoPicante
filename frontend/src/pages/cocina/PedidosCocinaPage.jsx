@@ -122,10 +122,10 @@ const CocinaPage = () => {
 
   const getDestinoLabel = (pedido, item) => {
     if (item.destino !== 'MESA') return null;
-    const esB = pedido?.ambiente === 'B';
-    return esB
-      ? <Badge bg="warning" text="dark" className="destino-badge me-2">🚪 Amb. B · Ficha #{pedido.num_mesa}</Badge>
-      : <Badge bg="info" className="destino-badge me-2">🏠 Mesa {pedido?.num_mesa}</Badge>;
+    if (pedido?.ambiente === 'OFICINA') {
+      return <Badge bg="primary" className="destino-badge me-2">🏢 Oficina · {pedido.nombre_cliente}</Badge>;
+    }
+    return <Badge bg="success" className="destino-badge me-2">🌿 Patio · Mesa {pedido?.num_mesa}</Badge>;
   };
 
   const renderPedidoItemsPendientes = (items, pedido, id_pedido) => {
@@ -192,9 +192,9 @@ const CocinaPage = () => {
               </div>
               {pedido.tipo_pedido !== 'LLEVAR' && (
                 <div className="mb-2">
-                  {esAmbB
-                    ? <Badge bg="warning" text="dark" className="fs-6 px-3 py-2">🚪 Ambiente B — Ficha #{pedido.num_mesa}</Badge>
-                    : <Badge bg="info" className="fs-6 px-3 py-2">🏠 Ambiente A — Mesa {pedido.num_mesa}</Badge>
+                  {pedido.ambiente === 'OFICINA'
+                    ? <Badge bg="primary" className="fs-6 px-3 py-2">🏢 Oficina — {pedido.nombre_cliente}</Badge>
+                    : <Badge bg="success" className="fs-6 px-3 py-2">🌿 Patio — Mesa {pedido.num_mesa}</Badge>
                   }
                 </div>
               )}
@@ -232,9 +232,9 @@ const CocinaPage = () => {
               </div>
               {pedido.tipo_pedido !== 'LLEVAR' && (
                 <div className="mb-2">
-                  {esAmbB
-                    ? <Badge bg="warning" text="dark" className="fs-6 px-3 py-2">🚪 Ambiente B — Ficha #{pedido.num_mesa}</Badge>
-                    : <Badge bg="info" className="fs-6 px-3 py-2">🏠 Ambiente A — Mesa {pedido.num_mesa}</Badge>
+                  {pedido.ambiente === 'OFICINA'
+                    ? <Badge bg="primary" className="fs-6 px-3 py-2">🏢 Oficina — {pedido.nombre_cliente}</Badge>
+                    : <Badge bg="success" className="fs-6 px-3 py-2">🌿 Patio — Mesa {pedido.num_mesa}</Badge>
                   }
                 </div>
               )}
