@@ -20,26 +20,26 @@ export class InventarioController {
 
   /** Apertura diaria de platos (define cupo por producto para la fecha) */
   @Post('apertura-platos')
-  @Roles('GERENTE')
+  @Roles('GERENTE', 'CAJERO','COCINA')
   aperturaPlatos(@Body() dto: AperturaPlatosDto) {
     return this.service.aperturaPlatos(dto);
   }
 
   /** Ingreso de stock para bebidas (global) */
   @Post('ingreso-bebida')
-  @Roles('GERENTE')
+  @Roles('GERENTE','CAJERO')
   ingresoBebida(@Body() dto: IngresoBebidaDto) {
     return this.service.ingresoBebida(dto);
   }
 
   /** Merma (plato por fecha o bebida global) */
   @Post('merma')
-  @Roles('GERENTE')
+  @Roles('GERENTE','CAJERO')
   merma(@Body() dto: MermaDto) {
     return this.service.merma(dto);
   }
   @Get('merma')
-  @Roles('GERENTE')
+  @Roles('GERENTE','CAJERO')
   listarMermas() {
     return this.service.listarMermas();
   }
