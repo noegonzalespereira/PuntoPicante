@@ -29,8 +29,11 @@ export class CajaController {
 
   /** Devuelve la caja ABIERTA del usuario (si existe) */
   @Get('abierta')
-  @Roles('CAJERO', 'GERENTE')
+  @Roles('CAJERO', 'GERENTE', 'COCINA', 'MESERO')
   cajaAbierta(@Req() req: any) {
+    if (req.user.rol === 'COCINA' || req.user.rol === 'MESERO') {
+      return this.service.cajaAbiertaActual();
+    }
     return this.service.cajaAbiertaDe(req.user.userId);
   }
 

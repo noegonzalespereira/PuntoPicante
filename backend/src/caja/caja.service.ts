@@ -56,6 +56,11 @@ export class CajaService {
     });
   }
 
+  /** Devuelve cualquier caja ABIERTA (para cocina/mesero que no abren caja propia) */
+  async cajaAbiertaActual() {
+    return this.cajas.findOne({ where: { estado: EstadoCaja.ABIERTA } });
+  }
+
   /** Cierra la caja (CAJERO solo la suya; GERENTE cualquiera) */
   async cerrar(userId: number, rol: Rol, id_caja: number, dto: CloseCajaDto) {
     const caja = await this.cajas.findOne({ where: { id_caja } });
