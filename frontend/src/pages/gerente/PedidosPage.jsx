@@ -71,7 +71,9 @@ export default function PedidosPage() {
 
   const [pedidoActual, setPedidoActual] = useState({
     tipo_pedido: "MESA",
+    ambiente: "PATIO",
     num_mesa: "",
+    nombre_cliente: "",
     estado_pago: "SIN_PAGAR",
     metodo_pago: null,
     items: [],
@@ -194,10 +196,17 @@ export default function PedidosPage() {
       return false;
     }
     if (!appendContext && esMesaRequerida(pedidoActual.tipo_pedido)) {
-      const nMesa = Number(pedidoActual.num_mesa);
-      if (!mesaValida(nMesa)) {
-        toast.warning("Número de mesa inválido (1–9)");
-        return false;
+      if (pedidoActual.ambiente === "OFICINA") {
+        if (!pedidoActual.nombre_cliente?.trim()) {
+          toast.warning("Ingrese el nombre del cliente para pedidos de Oficina");
+          return false;
+        }
+      } else {
+        const nMesa = Number(pedidoActual.num_mesa);
+        if (!mesaValida(nMesa)) {
+          toast.warning("Número de mesa inválido (1–9)");
+          return false;
+        }
       }
     }
     if (!appendContext && pedidoActual.estado_pago === "PAGADO" && !pedidoActual.metodo_pago) {
@@ -218,10 +227,13 @@ export default function PedidosPage() {
     if (saving) return;
     if (!validarAntesDeEnviar()) return;
 
+    const esOficina = esMesaRequerida(pedidoActual.tipo_pedido) && pedidoActual.ambiente === "OFICINA";
     const payload = {
       id_caja: cajaAbierta?.id_caja,
       tipo_pedido: pedidoActual.tipo_pedido,
-      num_mesa: esMesaRequerida(pedidoActual.tipo_pedido) ? Number(pedidoActual.num_mesa) : null,
+      ambiente: esMesaRequerida(pedidoActual.tipo_pedido) ? pedidoActual.ambiente : undefined,
+      num_mesa: esOficina ? null : esMesaRequerida(pedidoActual.tipo_pedido) ? Number(pedidoActual.num_mesa) : null,
+      nombre_cliente: esOficina ? pedidoActual.nombre_cliente.trim() : null,
       estado_pago: pedidoActual.estado_pago,
       metodo_pago: pedidoActual.estado_pago === "PAGADO" ? pedidoActual.metodo_pago : null,
       items: pedidoActual.items.map((i) => ({
@@ -245,7 +257,9 @@ export default function PedidosPage() {
         toast.success(`${payload.items.length} ítem(s) añadidos al pedido #${appendContext.num_pedido}`);
         setPedidoActual({
           tipo_pedido: "MESA",
+          ambiente: "PATIO",
           num_mesa: "",
+          nombre_cliente: "",
           estado_pago: "SIN_PAGAR",
           metodo_pago: null,
           items: [],
@@ -265,7 +279,9 @@ export default function PedidosPage() {
         toast.success(`Pedido #${res.num_pedido} creado correctamente`);
         setPedidoActual({
           tipo_pedido: "MESA",
+          ambiente: "PATIO",
           num_mesa: "",
+          nombre_cliente: "",
           estado_pago: "SIN_PAGAR",
           metodo_pago: null,
           items: [],
@@ -817,7 +833,9 @@ export default function PedidosPage() {
                       setPedidoActual((prev) => ({
                         ...prev,
                         tipo_pedido: e.target.value,
+                        ambiente: e.target.value === "LLEVAR" ? "PATIO" : prev.ambiente,
                         num_mesa: e.target.value === "LLEVAR" ? "" : prev.num_mesa,
+                        nombre_cliente: e.target.value === "LLEVAR" ? "" : prev.nombre_cliente,
                         items: prev.items.map((it) => ({
                           ...it,
                           destino: e.target.value === "LLEVAR" ? "LLEVAR" : "MESA",
@@ -833,7 +851,27 @@ export default function PedidosPage() {
                 </Form.Group>
 
                 
-                {esMesaRequerida(pedidoActual.tipo_pedido) && (
+                {esMesaRequerida(pedidoActual.tipo_pedido) && !appendContext && (
+                  <Form.Group className="mb-3">
+                    <Form.Label>Ambiente</Form.Label>
+                    <Form.Select
+                      value={pedidoActual.ambiente}
+                      onChange={(e) =>
+                        setPedidoActual((prev) => ({
+                          ...prev,
+                          ambiente: e.target.value,
+                          num_mesa: "",
+                          nombre_cliente: "",
+                        }))
+                      }
+                    >
+                      <option value="PATIO">Patio</option>
+                      <option value="OFICINA">Oficina</option>
+                    </Form.Select>
+                  </Form.Group>
+                )}
+
+                {esMesaRequerida(pedidoActual.tipo_pedido) && !appendContext && pedidoActual.ambiente === "PATIO" && (
                   <Form.Group className="mb-3">
                     <Form.Label>Número de Mesa</Form.Label>
                     <Form.Control
@@ -843,13 +881,29 @@ export default function PedidosPage() {
                       onChange={(e) =>
                         setPedidoActual((prev) => ({ ...prev, num_mesa: e.target.value }))
                       }
-                      disabled={!!appendContext}
                     />
-                    {appendContext && (
-                      <Form.Text className="text-muted">
-                        Usando la mesa del pedido #{appendContext.num_pedido}.
-                      </Form.Text>
-                    )}
+                  </Form.Group>
+                )}
+
+                {esMesaRequerida(pedidoActual.tipo_pedido) && !appendContext && pedidoActual.ambiente === "OFICINA" && (
+                  <Form.Group className="mb-3">
+                    <Form.Label>Nombre del Cliente</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Nombre del cliente"
+                      value={pedidoActual.nombre_cliente}
+                      onChange={(e) =>
+                        setPedidoActual((prev) => ({ ...prev, nombre_cliente: e.target.value }))
+                      }
+                    />
+                  </Form.Group>
+                )}
+
+                {appendContext && esMesaRequerida(pedidoActual.tipo_pedido) && (
+                  <Form.Group className="mb-3">
+                    <Form.Text className="text-muted">
+                      Usando la mesa del pedido #{appendContext.num_pedido}.
+                    </Form.Text>
                   </Form.Group>
                 )}
 
