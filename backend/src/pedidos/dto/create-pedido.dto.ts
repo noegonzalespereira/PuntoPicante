@@ -28,7 +28,7 @@ export class CreatePedidoDto {
   tipo_pedido: TipoPedido;
 
   
-  @ValidateIf((o) => o.tipo_pedido !== TipoPedido.LLEVAR)
+  @ValidateIf((o) => o.tipo_pedido !== TipoPedido.LLEVAR && o.ambiente !== 'OFICINA')
   @IsInt()
   @Min(1)
   @Max(50)
