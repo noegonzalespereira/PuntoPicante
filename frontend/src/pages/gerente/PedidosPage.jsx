@@ -80,7 +80,7 @@ export default function PedidosPage() {
   });
 
   const esMesaRequerida = (tipo) => tipo === "MESA" || tipo === "MIXTO";
-  const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 9;
+  const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 8;
 
   async function cargarStockDelDia() {
     try {
@@ -298,7 +298,6 @@ export default function PedidosPage() {
 
 
   async function abrirModalEditar(pResumen) {
-    if (pResumen.estado_pago === "PAGADO") return; 
     setModalEditar({ open: true, loading: true, pedido: null });
     try {
       const p = await pedidoService.getDetalles(pResumen.id_pedido);
@@ -874,14 +873,17 @@ export default function PedidosPage() {
                 {esMesaRequerida(pedidoActual.tipo_pedido) && !appendContext && pedidoActual.ambiente === "PATIO" && (
                   <Form.Group className="mb-3">
                     <Form.Label>Número de Mesa</Form.Label>
-                    <Form.Control
-                      type="number"
-                      placeholder="1 a 9"
+                    <Form.Select
                       value={pedidoActual.num_mesa}
                       onChange={(e) =>
                         setPedidoActual((prev) => ({ ...prev, num_mesa: e.target.value }))
                       }
-                    />
+                    >
+                      <option value="">Seleccionar mesa...</option>
+                      {[1,2,3,4,5,6,7,8].map((n) => (
+                        <option key={n} value={n}>Mesa {n}</option>
+                      ))}
+                    </Form.Select>
                   </Form.Group>
                 )}
 
@@ -1186,7 +1188,6 @@ export default function PedidosPage() {
                                 className="me-1 btn-edit-pedido"
                                 title="Editar"
                                 onClick={() => abrirModalEditar(p)}
-                                disabled={p.estado_pago === "PAGADO"}
                               />
                               <IconButton
                                 icon="bi-trash"
@@ -1269,7 +1270,6 @@ export default function PedidosPage() {
                           pedido: { ...prev.pedido, tipo_pedido: e.target.value },
                         }))
                       }
-                      disabled={modalEditar.pedido.estado_pago_original === "PAGADO"}
                     >
                       <option value="MESA">Mesa</option>
                       <option value="LLEVAR">Llevar</option>
@@ -1296,7 +1296,6 @@ export default function PedidosPage() {
                           },
                         }))
                       }
-                      disabled={modalEditar.pedido.estado_pago_original === "PAGADO"}
                     >
                       <option value="SIN_PAGAR">Sin pagar</option>
                       <option value="PAGADO">Pagado</option>
@@ -1315,10 +1314,7 @@ export default function PedidosPage() {
                           pedido: { ...prev.pedido, metodo_pago: e.target.value },
                         }))
                       }
-                      disabled={
-                        modalEditar.pedido.estado_pago !== "PAGADO" ||
-                        modalEditar.pedido.estado_pago_original === "PAGADO"
-                      }
+                      disabled={modalEditar.pedido.estado_pago !== "PAGADO"}
                     >
                       <option value="">-</option>
                       <option value="EFECTIVO">Efectivo</option>
@@ -1345,7 +1341,6 @@ export default function PedidosPage() {
                             pedido: { ...prev.pedido, num_mesa: e.target.value },
                           }))
                         }
-                        disabled={modalEditar.pedido.estado_pago_original === "PAGADO"}
                       />
                     </Form.Group>
                   </Col>
