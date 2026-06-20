@@ -197,10 +197,7 @@ export default function PedidosPage() {
     }
     if (!appendContext && esMesaRequerida(pedidoActual.tipo_pedido)) {
       if (pedidoActual.ambiente === "OFICINA") {
-        if (!pedidoActual.nombre_cliente?.trim()) {
-          toast.warning("Ingrese el nombre del cliente para pedidos de Oficina");
-          return false;
-        }
+        // nombre_cliente es opcional para oficina
       } else {
         const nMesa = Number(pedidoActual.num_mesa);
         if (!mesaValida(nMesa)) {

@@ -98,11 +98,11 @@ export class PedidosService {
     if (tipo === TipoPedido.LLEVAR) {
       p.num_mesa = null;
     } else if (tipo === TipoPedido.MESA) {
-      if (!p.num_mesa) throw new BadRequestException('num_mesa es obligatorio para pedidos de MESA');
+      if (!p.num_mesa && p.ambiente !== 'OFICINA') throw new BadRequestException('num_mesa es obligatorio para pedidos de MESA');
     }
     if (tipo === TipoPedido.MIXTO) {
       const tieneMesa = destinos.includes(DestinoItem.MESA);
-      if (tieneMesa && !p.num_mesa) throw new BadRequestException('Hay ítems para MESA: num_mesa es obligatorio');
+      if (tieneMesa && !p.num_mesa && p.ambiente !== 'OFICINA') throw new BadRequestException('Hay ítems para MESA: num_mesa es obligatorio');
     }
 
     await mgr.save(p);
@@ -162,8 +162,6 @@ export class PedidosService {
 
     if (dto.tipo_pedido === TipoPedido.MESA || dto.tipo_pedido === TipoPedido.MIXTO) {
       if (dto.ambiente === 'OFICINA') {
-        if (!dto.nombre_cliente?.trim())
-          throw new BadRequestException('El nombre del cliente es obligatorio para pedidos de Oficina');
         dto.num_mesa = null;
       } else {
         if (!dto.num_mesa || dto.num_mesa < 1)
