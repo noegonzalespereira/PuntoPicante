@@ -822,48 +822,43 @@ export default function PedidosPage() {
               <Card.Body>
                 
                 <Form.Group className="mb-3">
-                  <Form.Label>Tipo de Pedido</Form.Label>
-                  <Form.Select
-                    value={pedidoActual.tipo_pedido}
-                    onChange={(e) =>
-                      setPedidoActual((prev) => ({
-                        ...prev,
-                        tipo_pedido: e.target.value,
-                        ambiente: e.target.value === "LLEVAR" ? "PATIO" : prev.ambiente,
-                        num_mesa: e.target.value === "LLEVAR" ? "" : prev.num_mesa,
-                        nombre_cliente: e.target.value === "LLEVAR" ? "" : prev.nombre_cliente,
-                        items: prev.items.map((it) => ({
-                          ...it,
-                          destino: e.target.value === "LLEVAR" ? "LLEVAR" : "MESA",
-                        })),
-                      }))
-                    }
-                    disabled={!!appendContext}
-                  >
-                    <option value="MESA">Mesa</option>
-                    <option value="LLEVAR">Para Llevar</option>
-                    <option value="MIXTO">Mixto</option>
-                  </Form.Select>
+                  <Form.Label className="fw-semibold">Tipo de Pedido</Form.Label>
+                  <div className="d-flex gap-3">
+                    {[{v:"MESA",l:"Mesa"},{v:"LLEVAR",l:"Llevar"},{v:"MIXTO",l:"Mixto"}].map(({v,l}) => (
+                      <Form.Check
+                        key={v} type="radio" id={`tipo-${v}`}
+                        label={l} value={v}
+                        checked={pedidoActual.tipo_pedido === v}
+                        disabled={!!appendContext}
+                        onChange={() => setPedidoActual((prev) => ({
+                          ...prev,
+                          tipo_pedido: v,
+                          ambiente: v === "LLEVAR" ? "PATIO" : prev.ambiente,
+                          num_mesa: v === "LLEVAR" ? "" : prev.num_mesa,
+                          nombre_cliente: v === "LLEVAR" ? "" : prev.nombre_cliente,
+                          items: prev.items.map((it) => ({ ...it, destino: v === "LLEVAR" ? "LLEVAR" : "MESA" })),
+                        }))}
+                      />
+                    ))}
+                  </div>
                 </Form.Group>
 
                 
                 {esMesaRequerida(pedidoActual.tipo_pedido) && !appendContext && (
                   <Form.Group className="mb-3">
-                    <Form.Label>Ambiente</Form.Label>
-                    <Form.Select
-                      value={pedidoActual.ambiente}
-                      onChange={(e) =>
-                        setPedidoActual((prev) => ({
-                          ...prev,
-                          ambiente: e.target.value,
-                          num_mesa: "",
-                          nombre_cliente: "",
-                        }))
-                      }
-                    >
-                      <option value="PATIO">Patio</option>
-                      <option value="OFICINA">Oficina</option>
-                    </Form.Select>
+                    <Form.Label className="fw-semibold">Ambiente</Form.Label>
+                    <div className="d-flex gap-3">
+                      {[{v:"PATIO",l:"Patio"},{v:"OFICINA",l:"Oficina"}].map(({v,l}) => (
+                        <Form.Check
+                          key={v} type="radio" id={`amb-${v}`}
+                          label={l} value={v}
+                          checked={pedidoActual.ambiente === v}
+                          onChange={() => setPedidoActual((prev) => ({
+                            ...prev, ambiente: v, num_mesa: "", nombre_cliente: "",
+                          }))}
+                        />
+                      ))}
+                    </div>
                   </Form.Group>
                 )}
 
@@ -909,34 +904,36 @@ export default function PedidosPage() {
                 {!appendContext && (
                   <>
                     <Form.Group className="mb-3">
-                      <Form.Label>Estado del Pago</Form.Label>
-                      <Form.Select
-                        value={pedidoActual.estado_pago}
-                        onChange={(e) =>
-                          setPedidoActual((prev) => ({
-                            ...prev,
-                            estado_pago: e.target.value,
-                            metodo_pago: e.target.value === "PAGADO" ? "EFECTIVO" : null,
-                          }))
-                        }
-                      >
-                        <option value="SIN_PAGAR">Sin pagar</option>
-                        <option value="PAGADO">Pagado</option>
-                      </Form.Select>
+                      <Form.Label className="fw-semibold">Estado del Pago</Form.Label>
+                      <div className="d-flex gap-3">
+                        {[{v:"SIN_PAGAR",l:"Sin pagar"},{v:"PAGADO",l:"Pagado"}].map(({v,l}) => (
+                          <Form.Check
+                            key={v} type="radio" id={`pago-${v}`}
+                            label={l} value={v}
+                            checked={pedidoActual.estado_pago === v}
+                            onChange={() => setPedidoActual((prev) => ({
+                              ...prev,
+                              estado_pago: v,
+                              metodo_pago: v === "PAGADO" ? "EFECTIVO" : null,
+                            }))}
+                          />
+                        ))}
+                      </div>
                     </Form.Group>
 
                     {pedidoActual.estado_pago === "PAGADO" && (
                       <Form.Group className="mb-3">
-                        <Form.Label>Método de Pago</Form.Label>
-                        <Form.Select
-                          value={pedidoActual.metodo_pago ?? ""}
-                          onChange={(e) =>
-                            setPedidoActual((prev) => ({ ...prev, metodo_pago: e.target.value }))
-                          }
-                        >
-                          <option value="EFECTIVO">Efectivo</option>
-                          <option value="QR">QR</option>
-                        </Form.Select>
+                        <Form.Label className="fw-semibold">Método de Pago</Form.Label>
+                        <div className="d-flex gap-3">
+                          {[{v:"EFECTIVO",l:"Efectivo"},{v:"QR",l:"QR"}].map(({v,l}) => (
+                            <Form.Check
+                              key={v} type="radio" id={`metodo-${v}`}
+                              label={l} value={v}
+                              checked={pedidoActual.metodo_pago === v}
+                              onChange={() => setPedidoActual((prev) => ({ ...prev, metodo_pago: v }))}
+                            />
+                          ))}
+                        </div>
                       </Form.Group>
                     )}
                   </>
@@ -1134,7 +1131,7 @@ export default function PedidosPage() {
                         <tr>
                           <th>Num Pedido</th>
                           <th>Tipo</th>
-                          <th>Mesa</th>
+                          <th>Mesa / Lugar</th>
                           <th>Total</th>
                           <th>Estado Pedido</th>
                           <th>Pago</th>
@@ -1147,7 +1144,11 @@ export default function PedidosPage() {
                           <tr key={p.id_pedido}>
                             <td data-label="Num Pedido" className="fw-bold">{p.num_pedido}</td>
                             <td data-label="Tipo">{p.tipo_pedido}</td>
-                            <td data-label="Mesa">{p.num_mesa ?? "-"}</td>
+                            <td data-label="Mesa / Lugar">
+                              {p.ambiente === "OFICINA"
+                                ? <Badge bg="primary" style={{ fontSize: "0.75rem" }}>Oficina</Badge>
+                                : p.num_mesa ?? "-"}
+                            </td>
                             <td data-label="Total" className="fw-bold"><Money value={p.total} /></td>
                             <td data-label="Estado Pedido">
                               <EstadoBadge estado={p.estado_pedido} />

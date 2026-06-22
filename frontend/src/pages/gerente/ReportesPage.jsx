@@ -855,23 +855,6 @@ const rango = useMemo(() => {
 
     return (
     <div>
-      {/* Pedidos por destino */}
-      <Row className="g-3 mb-4">
-        <Col lg={12}>
-          <Card className="modern-card p-3">
-            <h6 className="text-muted mb-2">Pedidos por tipo</h6>
-            <div className="stat-grid">
-              <div className="stat-item"><span className="stat-value">{inventario.comer}</span><span className="stat-label">Para Comer</span></div>
-              <div className="stat-item"><span className="stat-value">{inventario.llevar}</span><span className="stat-label">Para Llevar</span></div>
-              <div className="stat-item"><span className="stat-value">{inventario.mixtos}</span><span className="stat-label">Mixtos</span></div>
-              <div className="stat-item"><span className="stat-value">{inventario.platosMesa}</span><span className="stat-label">Ítems a Mesa</span></div>
-              <div className="stat-item"><span className="stat-value">{inventario.platosLlevar}</span><span className="stat-label">Ítems Llevar</span></div>
-              <div className="stat-item"><span className="stat-value" style={{color:'#2e7d32'}}>{kpis.pedidosDespachados}</span><span className="stat-label">Total Despachados</span></div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
       {/* Desglose por tipo de producto */}
       <Row className="g-4">
         {/* PLATOS */}
