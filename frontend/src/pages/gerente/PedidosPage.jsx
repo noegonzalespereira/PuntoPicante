@@ -568,9 +568,9 @@ export default function PedidosPage() {
     }
   }
 
-  const renderItemRow = (pedidoRef, item, index) => (
+  const renderItemRow = (pedidoRef, item) => (
     <Row
-      key={`${item.id_producto}-${index}`}
+      key={item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto}
       className="align-items-center border rounded-3 p-2 mb-2 bg-light item-row-edit"
     >
       <Col md={4}>
@@ -589,8 +589,10 @@ export default function PedidosPage() {
               ...prev,
               pedido: {
                 ...prev.pedido,
-                items: prev.pedido.items.map((i, idx) =>
-                  idx === index ? { ...i, notas: e.target.value } : i
+                items: prev.pedido.items.map((i) =>
+                  (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) === (item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto)
+                    ? { ...i, notas: e.target.value }
+                    : i
                 ),
               },
             }))
@@ -607,8 +609,10 @@ export default function PedidosPage() {
                 ...prev,
                 pedido: {
                   ...prev.pedido,
-                  items: prev.pedido.items.map((i, idx) =>
-                    idx === index ? { ...i, destino: e.target.value } : i
+                  items: prev.pedido.items.map((i) =>
+                    (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) === (item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto)
+                      ? { ...i, destino: e.target.value }
+                      : i
                   ),
                 },
               }))
@@ -630,8 +634,10 @@ export default function PedidosPage() {
               ...prev,
               pedido: {
                 ...prev.pedido,
-                items: prev.pedido.items.map((i, idx) =>
-                  idx === index ? { ...i, cantidad: Math.max(1, Number(i.cantidad) - 1) } : i
+                items: prev.pedido.items.map((i) =>
+                  (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) === (item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto)
+                    ? { ...i, cantidad: Math.max(1, Number(i.cantidad) - 1) }
+                    : i
                 ),
               },
             }))
@@ -648,8 +654,10 @@ export default function PedidosPage() {
               ...prev,
               pedido: {
                 ...prev.pedido,
-                items: prev.pedido.items.map((i, idx) =>
-                  idx === index ? { ...i, cantidad: Number(i.cantidad) + 1 } : i
+                items: prev.pedido.items.map((i) =>
+                  (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) === (item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto)
+                    ? { ...i, cantidad: Number(i.cantidad) + 1 }
+                    : i
                 ),
               },
             }))
@@ -672,7 +680,9 @@ export default function PedidosPage() {
               ...prev,
               pedido: {
                 ...prev.pedido,
-                items: prev.pedido.items.filter((_, idx) => idx !== index),
+                items: prev.pedido.items.filter((i) =>
+                  (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) !== (item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto)
+                ),
               },
             }))
           }
@@ -1365,7 +1375,7 @@ export default function PedidosPage() {
               </h6>
               {modalEditar.pedido.items
                 .filter((i) => i.producto?.tipo === "PLATO")
-                .map((item, idx) => renderItemRow(modalEditar.pedido, item, idx))}
+                .map((item) => renderItemRow(modalEditar.pedido, item))}
 
               {/* Bebidas */}
               <h6 className="fw-bold text-secondary mt-3">
@@ -1373,7 +1383,7 @@ export default function PedidosPage() {
               </h6>
               {modalEditar.pedido.items
                 .filter((i) => i.producto?.tipo === "BEBIDA")
-                .map((item, idx) => renderItemRow(modalEditar.pedido, item, idx))}
+                .map((item) => renderItemRow(modalEditar.pedido, item))}
             </>
           ) : (
             <p className="text-center text-muted">
