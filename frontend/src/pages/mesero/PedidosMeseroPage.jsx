@@ -89,7 +89,7 @@ export default function PedidosMeseroPage() {
     return () => clearInterval(pollingRef.current);
   }, [cargarDatos]);
 
-  const pedidosVisibles = pedidos.filter(p => !atendidos.has(p.id_pedido));
+  const pedidosVisibles = pedidos.filter(p => !atendidos.has(p.id_pedido) && p.tipo_pedido !== 'LLEVAR');
   const pendientes = pedidosVisibles.filter(p => p.estado_pedido === 'PENDIENTE');
   const listos     = pedidosVisibles.filter(p => p.estado_pedido === 'LISTO');
 
@@ -111,7 +111,7 @@ export default function PedidosMeseroPage() {
         <Card.Body className="d-flex flex-column">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h5 className={`card-title mb-0 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
-              Pedido #{pedido.num_pedido || pedido.id_pedido}
+              {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
             </h5>
             {pedido.estado_pedido === 'LISTO'
               ? <span className="tag-listo"><BsCheckLg className="me-1" /> Listo en cocina</span>
@@ -119,7 +119,11 @@ export default function PedidosMeseroPage() {
             }
           </div>
 
-          <div className="mb-2">{getAmbienteBadge(pedido)}</div>
+          {pedido.ambiente === 'OFICINA' && (
+            <div className="mb-2">
+              <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
+            </div>
+          )}
           <hr className="my-2" />
 
           <div className="pedido-items-list flex-grow-1">

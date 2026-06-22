@@ -158,6 +158,13 @@ const rango = useMemo(() => {
   });
 
   
+  const ventaRestauranteUds = useMemo(
+    () => inventario.vendidosDetalle
+      .filter(p => p.tipo === 'PLATO' || p.tipo === 'BEBIDA')
+      .reduce((s, p) => s + Number(p.cantidad ?? 0), 0),
+    [inventario.vendidosDetalle]
+  );
+
   const cargar = useCallback(async () => {
     setLoading(true);
     setErrorMsg("");
@@ -439,9 +446,12 @@ const rango = useMemo(() => {
     y = 36;
 
     // ── KPI BOXES ────────────────────────────────────────────────
+    const pdfVentaUds = inventario.vendidosDetalle
+      .filter(p => p.tipo === "PLATO" || p.tipo === "BEBIDA")
+      .reduce((s, p) => s + Number(p.cantidad ?? 0), 0);
     const kpiData = [
-      { label: "VENTA TOTAL",    val: `Bs ${kpis.ventaTotal.toFixed(2)}`,    sub: "Platos + Bebidas",  c: C.marron },
-      { label: "VENTA EXTRAS",   val: `Bs ${kpis.ventaExtras.toFixed(2)}`,   sub: "Emprendimiento",    c: C.ambar  },
+      { label: "VENTA TOTAL",    val: `Bs ${kpis.ventaTotal.toFixed(2)}`,    sub: pdfVentaUds > 0 ? `Platos+Bebidas · ${pdfVentaUds} uds` : "Platos + Bebidas", c: C.marron },
+      { label: "VENTA EXTRAS",   val: `Bs ${kpis.ventaExtras.toFixed(2)}`,   sub: "Bolos",             c: C.ambar  },
       { label: "GANANCIA NETA",  val: `Bs ${kpis.gananciaNeta.toFixed(2)}`,  sub: "Sin extras",        c: C.verde  },
       { label: "GASTOS",         val: `Bs ${kpis.gastosTotales.toFixed(2)}`, sub: "Total del período", c: C.rojo   },
     ];
@@ -555,10 +565,11 @@ const rango = useMemo(() => {
     const totalPlatosBs   = sumBs(platos);
     const totalBebidasBs  = sumBs(bebidas);
     const totalExtrasBs   = sumBs(extras);
+    const totalRestauranteUdsPDF = totalPlatosUds + totalBebidasUds;
 
-    tablaProductos(platos,  "Platos",                    C.marron, totalPlatosUds,  totalPlatosBs);
-    tablaProductos(bebidas, "Bebidas",                   C.azul,   totalBebidasUds, totalBebidasBs);
-    tablaProductos(extras,  "Extras  —  Emprendimiento", C.ambar,  totalExtrasUds,  totalExtrasBs);
+    tablaProductos(platos,  "Platos",           C.marron, totalPlatosUds,  totalPlatosBs);
+    tablaProductos(bebidas, "Bebidas",           C.azul,   totalBebidasUds, totalBebidasBs);
+    tablaProductos(extras,  "Extras  —  Bolos", C.ambar,  totalExtrasUds,  totalExtrasBs);
 
     // Banner Total Restaurante
     guard(14);
@@ -566,7 +577,7 @@ const rango = useMemo(() => {
     color(C.blanco); font("bold", 10);
     txt("TOTAL RESTAURANTE  (Platos + Bebidas)", M + 4, y + 6);
     font("normal", 8);
-    txt(`${totalPlatosUds + totalBebidasUds} unidades vendidas`, M + 4, y + 11);
+    txt(`${totalRestauranteUdsPDF} unidades vendidas`, M + 4, y + 11);
     font("bold", 13);
     txt(`Bs ${(totalPlatosBs + totalBebidasBs).toFixed(2)}`, M + CW - 2, y + 9, { align: "right" });
     y += 17;
@@ -1054,6 +1065,9 @@ const rango = useMemo(() => {
                   Bs {kpis.ventaTotal.toFixed(2)}
                 </div>
                 <small className="text-muted">Platos + Bebidas</small>
+                {ventaRestauranteUds > 0 && (
+                  <div className="small text-muted">{ventaRestauranteUds} unidades vendidas</div>
+                )}
               </Card.Body>
             </Card>
           </Col>
@@ -1064,12 +1078,12 @@ const rango = useMemo(() => {
                   <BsBoxSeam size={50} />
                 </div>
                 <span className="kpi-label">
-                  VENTA TOTAL EXTRAS
+                  VENTA EXTRAS
                 </span>
                 <div className="kpi-value">
                   Bs {kpis.ventaExtras.toFixed(2)}
                 </div>
-                <small className="text-muted">Emprendimiento</small>
+                <small className="text-muted">Bolos</small>
               </Card.Body>
             </Card>
           </Col>

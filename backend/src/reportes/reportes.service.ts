@@ -296,7 +296,7 @@ export class ReportesService {
       .createQueryBuilder('d')
       .innerJoin('d.pedido', 'p')
       .innerJoin('d.producto', 'pr')
-      .select("DATE(p.created_at AT TIME ZONE 'America/La_Paz')", 'fecha')
+      .select("TO_CHAR(p.created_at AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD')", 'fecha')
       .addSelect(
         "SUM(CASE WHEN pr.tipo = 'PLATO' THEN d.subtotal ELSE 0 END)",
         'platos',
@@ -313,8 +313,8 @@ export class ReportesService {
       .addSelect('COUNT(DISTINCT p.id_pedido)', 'pedidos')
       .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
       .andWhere("p.estado_pago::text = 'PAGADO'")
-      .groupBy("DATE(p.created_at AT TIME ZONE 'America/La_Paz')")
-      .orderBy("DATE(p.created_at AT TIME ZONE 'America/La_Paz')", 'ASC');
+      .groupBy("TO_CHAR(p.created_at AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD')")
+      .orderBy("TO_CHAR(p.created_at AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD')", 'ASC');
 
     const rows = await qb.getRawMany();
 

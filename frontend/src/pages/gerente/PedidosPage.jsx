@@ -1403,8 +1403,14 @@ export default function PedidosPage() {
       ) : modalVer.pedido ? (
         <>
           <Row className="mb-3">
-           <Col md={4}><strong>Tipo:</strong> {modalVer.pedido.tipo_pedido}</Col>
-            <Col md={4}><strong>Mesa:</strong> {modalVer.pedido.num_mesa ?? "-"}</Col>
+            <Col md={4}><strong>Tipo:</strong> {modalVer.pedido.tipo_pedido}</Col>
+            <Col md={4}>
+              {modalVer.pedido.ambiente === "OFICINA" ? (
+                <><strong>Ambiente:</strong> Oficina</>
+              ) : (
+                <><strong>Mesa:</strong> {modalVer.pedido.num_mesa ?? "-"}</>
+              )}
+            </Col>
             <Col md={4}>
               <strong>Pago:</strong>{" "}
               <Badge bg={modalVer.pedido.estado_pago === "PAGADO" ? "success" : "danger"}>
@@ -1412,6 +1418,11 @@ export default function PedidosPage() {
               </Badge>
             </Col>
           </Row>
+          {modalVer.pedido.ambiente === "OFICINA" && (
+            <Row className="mb-3">
+              <Col md={8}><strong>Cliente:</strong> {modalVer.pedido.nombre_cliente ?? "-"}</Col>
+            </Row>
+          )}
           <Row className="mb-3">
             <Col md={4}><strong>Método:</strong> {modalVer.pedido.metodo_pago ?? "-"}</Col>
             <Col md={8}><strong>Estado pedido:</strong> {modalVer.pedido.estado_pedido}</Col>

@@ -146,13 +146,7 @@ const CocinaPage = () => {
         <div className="d-flex justify-content-between align-items-center">
           <div className="flex-grow-1">
             <strong className="text-marron d-block">{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
-            <div className="d-flex align-items-center mt-1">
-              {item.destino === 'MESA'
-                ? getDestinoLabel(pedido, item)
-                : <Badge bg="secondary" className="destino-badge me-2">{item.destino}</Badge>
-              }
-              {item.notas && <small className="text-rojo fw-bold">Notas: {item.notas}</small>}
-            </div>
+            {item.notas && <small className="text-rojo fw-bold">Notas: {item.notas}</small>}
           </div>
           <span className="text-verde fw-bold ms-3">{item.cantidad} x</span>
           <Button
@@ -192,15 +186,14 @@ const CocinaPage = () => {
                 style={esAmbB ? { borderLeft: '4px solid #f59e0b' } : {}}>
             <Card.Body className="d-flex flex-column">
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="card-title text-marron mb-0">Pedido #{pedido.num_pedido || pedido.id_pedido}</h5>
+                <h5 className="card-title text-marron mb-0">
+                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                </h5>
                 <span className="tag-pendiente"><BsEye className="me-1" /> Pendiente</span>
               </div>
-              {pedido.tipo_pedido !== 'LLEVAR' && (
+              {pedido.ambiente === 'OFICINA' && (
                 <div className="mb-2">
-                  {pedido.ambiente === 'OFICINA'
-                    ? <Badge bg="primary" className="fs-6 px-3 py-2">🏢 Oficina — {pedido.nombre_cliente}</Badge>
-                    : <Badge bg="success" className="fs-6 px-3 py-2">🌿 Patio — Mesa {pedido.num_mesa}</Badge>
-                  }
+                  <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
                 </div>
               )}
               <hr className="my-2" />
@@ -232,15 +225,14 @@ const CocinaPage = () => {
           <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
             <Card.Body className="d-flex flex-column">
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="card-title text-success mb-0">Pedido #{pedido.num_pedido || pedido.id_pedido}</h5>
+                <h5 className="card-title text-success mb-0">
+                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                </h5>
                 <span className="tag-listo"><BsCheckLg className="me-1" /> Listo</span>
               </div>
-              {pedido.tipo_pedido !== 'LLEVAR' && (
+              {pedido.ambiente === 'OFICINA' && (
                 <div className="mb-2">
-                  {pedido.ambiente === 'OFICINA'
-                    ? <Badge bg="primary" className="fs-6 px-3 py-2">🏢 Oficina — {pedido.nombre_cliente}</Badge>
-                    : <Badge bg="success" className="fs-6 px-3 py-2">🌿 Patio — Mesa {pedido.num_mesa}</Badge>
-                  }
+                  <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
                 </div>
               )}
               <hr className="my-2" />
@@ -250,13 +242,7 @@ const CocinaPage = () => {
                     <div className="d-flex justify-content-between align-items-center">
                       <div className="flex-grow-1">
                         <strong className="d-block">{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
-                        <div className="d-flex align-items-center mt-1">
-                          {item.destino === 'MESA'
-                            ? getDestinoLabel(pedido, item)
-                            : <Badge bg="secondary" className="destino-badge me-2">{item.destino}</Badge>
-                          }
-                          {item.notas && <small className="text-muted ms-2">Notas: {item.notas}</small>}
-                        </div>
+                        {item.notas && <small className="text-muted">Notas: {item.notas}</small>}
                       </div>
                       <span className="fw-bold">{item.cantidad} x</span>
                     </div>

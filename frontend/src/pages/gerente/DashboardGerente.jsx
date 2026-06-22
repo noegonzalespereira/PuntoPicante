@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { cajaService } from '../../services/cajaService';
 import { stockService } from '../../services/stockService';
 import { gastoService } from '../../services/gastosService';
-import { cocinaService } from '../../services/cocinaService';
 import { reportesService } from '../../services/reportesService';
 
 import '../../styles/DashboardPage.css';
@@ -16,7 +15,6 @@ import {
   BsBoxSeam,
   BsCashStack,
   BsWallet2,
-  BsClipboardCheck,
   BsCashCoin,
   BsCalendar,
 } from 'react-icons/bs';
@@ -42,14 +40,16 @@ function formatFechaVisual(ymd) {
 const DashboardGerente = () => {
   const [loading, setLoading] = useState(true);
 
+  const navigate = useNavigate();
+
   const [stats, setStats] = useState({
     fechaRef: hoyBolivia(),
     cajaAbierta: null,
     cajeroActual: 'N/A',
     montoApertura: '0.00',
     totalVendido: '0.00',
+    ventaExtras: '0.00',
     totalGastos: '0.00',
-    pedidosPendientes: 0,
     stockDetalle: { platos: [], bebidas: [], extras: [] },
     platosVendidos: 0,
     bebidasVendidas: 0,
@@ -118,34 +118,19 @@ const DashboardGerente = () => {
       // A) Fecha y caja
       const cajaInfo = await obtenerFechaReferencia();
       const fechaRef = cajaInfo.fechaRef;
-let totalVendido = 0;
-try {
-  const resumen = await reportesService.getResumen({ desde: fechaRef, hasta: fechaRef });
-  totalVendido = Number(resumen?.totales?.venta_total ?? 0);
-} catch (err) {
-  console.error('Ventas (PAGADOS) error:', err?.response?.data || err);
-  totalVendido = 0;
-}
 
-
-      // C) Pedidos pendientes (cocina)
-      let pedidosPendientes = 0;
+      let totalVendido = 0;
+      let ventaExtras = 0;
       try {
-        const idCaja = cajaInfo.cajaAbierta?.id_caja ?? null;
-
-        if (idCaja) {
-          const resp = await cocinaService.getPendientes({ id_caja: idCaja });
-
-          const arr = Array.isArray(resp) ? resp : (resp?.data ?? []);
-
-          
-          pedidosPendientes = arr.filter(p => (p.estado_pedido ?? p.estado) === 'PENDIENTE').length || arr.length;
-        } else {
-          pedidosPendientes = 0;
-        }
-      } catch (e) {
-        console.error('Cocina pendientes error:', e?.response?.data || e);
-        pedidosPendientes = 0;
+        const resumen = await reportesService.getResumen({ desde: fechaRef, hasta: fechaRef });
+        const productos = resumen?.productos ?? [];
+        const sumBs = (tipo) => productos
+          .filter(p => p.tipo === tipo)
+          .reduce((acc, p) => acc + Number(p.ventas ?? 0), 0);
+        totalVendido = sumBs('PLATO') + sumBs('BEBIDA');
+        ventaExtras  = sumBs('EXTRA');
+      } catch (err) {
+        console.error('Ventas (PAGADOS) error:', err?.response?.data || err);
       }
 
       // D) Gastos del mismo día de referencia
@@ -167,8 +152,8 @@ try {
         cajeroActual: cajaInfo.cajero,
         montoApertura: cajaInfo.montoApertura,
         totalVendido: totalVendido.toFixed(2),
+        ventaExtras: ventaExtras.toFixed(2),
         totalGastos: totalGastos.toFixed(2),
-        pedidosPendientes,
         stockDetalle: stockResp,
         platosVendidos,
         bebidasVendidas,
@@ -257,7 +242,7 @@ try {
         <p className="text-muted mb-1 fw-bold">
           Platos vendidos: <span className="text-marron">{stats.platosVendidos} uds.</span>
         </p>
-        <StockSeccion items={platos} labelCol="Plato" emptyMsg={`Sin stock de platos para ${formatFechaVisual(stats.fechaRef)}.`} />
+        <StockSeccion items={platos} labelCol="Plato" emptyMsg={`Sin apertura de platos para ${formatFechaVisual(stats.fechaRef)}.`} />
 
         {bebidas.length > 0 && (
           <>
@@ -268,6 +253,14 @@ try {
           </>
         )}
 
+        {extras.length > 0 && (
+          <>
+            <p className="text-muted mb-1 fw-bold mt-3">
+              Extras vendidos: <span className="text-marron">{stats.extrasVendidos} uds.</span>
+            </p>
+            <StockSeccion items={extras} labelCol="Extra" emptyMsg="" />
+          </>
+        )}
       </>
     );
   };
@@ -290,12 +283,14 @@ try {
 
       <Container fluid className="px-3">
         <Row className="g-4 mb-5">
+          {/* Venta total platos + bebidas */}
           <Col lg={3} md={6}>
             <Card className="kpi-card kpi-amarillo h-100">
               <Card.Body>
                 <BsWallet2 size={40} className="text-warning" />
-                <span className="kpi-label">VENTA TOTAL (PAGADOS)</span>
+                <span className="kpi-label">VENTA TOTAL</span>
                 <div className="kpi-value kpi-value-marron">Bs {stats.totalVendido}</div>
+                <p className="small text-muted mb-0">Platos + Bebidas</p>
               </Card.Body>
             </Card>
           </Col>
@@ -303,14 +298,14 @@ try {
           {/* Estado de caja */}
           <Col lg={3} md={6}>{renderCajaStatus()}</Col>
 
-          {/* Pedidos pendientes */}
+          {/* Venta extras */}
           <Col lg={3} md={6}>
             <Card className="kpi-card kpi-marron h-100">
               <Card.Body>
-                <BsClipboardCheck size={40} className="text-marron" />
-                <span className="kpi-label">PEDIDOS PENDIENTES</span>
-                <div className="kpi-value kpi-value-marron">{stats.pedidosPendientes}</div>
-                <p className="small text-muted mb-0">En preparación</p>
+                <BsBoxSeam size={40} className="text-marron" />
+                <span className="kpi-label">VENTA EXTRAS</span>
+                <div className="kpi-value kpi-value-marron">Bs {stats.ventaExtras}</div>
+                <p className="small text-muted mb-0">Bolos</p>
               </Card.Body>
             </Card>
           </Col>
@@ -336,7 +331,7 @@ try {
               </h5>
               {renderStockTable()}
               <div className="text-end mt-3">
-                <Button variant="outline-primary"  >
+                <Button variant="outline-primary" onClick={() => navigate('/gerente/reportes')}>
                   <BsCalendar className="me-2" /> Ver Reportes
                 </Button>
               </div>

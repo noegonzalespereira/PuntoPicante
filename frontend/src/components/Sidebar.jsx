@@ -24,11 +24,11 @@ export default function Sidebar({ isOpen, onClose }) {
     { label: "Dashboard", path: "/gerente/dashboard", icon: <BsSpeedometer2 /> },
     { label: "Caja", path: "/gerente/caja", icon: <BsCashStack /> },
     { label: "Pedidos", path: "/gerente/pedidos", icon: <BsCartCheck /> },
-    { label: "Cocina", path: "/gerente/cocina", icon: <BsEggFried /> },
     { label: "Inventario", path: "/gerente/inventario", icon: <BsBoxes /> },
-    { label: "Productos", path: "/gerente/productos", icon: <BsBasket /> },
     { label: "Reportes", path: "/gerente/reportes", icon: <BsBarChart /> },
+    { label: "Cocina", path: "/gerente/cocina", icon: <BsEggFried /> },
     { label: "Gastos", path: "/gerente/gastos", icon: <BsCashCoin /> },
+    { label: "Productos", path: "/gerente/productos", icon: <BsBasket /> },
     { label: "Usuarios", path: "/gerente/usuarios", icon: <BsPeople /> },
   ];
 
