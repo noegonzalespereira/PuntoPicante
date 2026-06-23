@@ -245,10 +245,10 @@ const CocinaPage = () => {
           <Card.Body className="d-flex flex-column">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <div>
-                <h5 className="card-title text-marron mb-0">
+                <h5 className="card-title text-marron mb-0 d-flex align-items-center gap-2">
                   {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                  <Badge bg="dark" style={{ fontSize: '0.7rem', fontWeight: 600 }}>#{pedido.num_pedido}</Badge>
                 </h5>
-                <small className="text-muted">Pedido #{pedido.num_pedido}</small>
               </div>
               <span className="tag-pendiente">
                 <BsEye className="me-1" /> Pendiente
@@ -294,10 +294,10 @@ const CocinaPage = () => {
             <Card.Body className="d-flex flex-column">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <div>
-                  <h5 className="card-title text-success mb-0">
+                  <h5 className="card-title text-success mb-0 d-flex align-items-center gap-2">
                     {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                    <Badge bg="dark" style={{ fontSize: '0.7rem', fontWeight: 600 }}>#{pedido.num_pedido}</Badge>
                   </h5>
-                  <small className="text-muted">Pedido #{pedido.num_pedido}</small>
                 </div>
                 <span className="tag-listo">
                   <BsCheckLg className="me-1" /> Listo
