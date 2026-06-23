@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsPositive, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsIn, IsInt, IsOptional, IsPositive, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MetodoPago, TipoPedido } from '../pedido.entity';
 import { DestinoItem,EstadoItem } from '../detalle-pedido.entity';
@@ -24,6 +24,12 @@ export class UpdatePedidoDto {
 
   @IsOptional() @IsInt()
   num_mesa?: number | null;
+
+  @IsOptional() @IsIn(['PATIO', 'OFICINA'])
+  ambiente?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  nombre_cliente?: string | null;
 
   @IsOptional() @IsEnum(MetodoPago)
   metodo_pago?: MetodoPago;

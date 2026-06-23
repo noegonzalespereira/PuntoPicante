@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsEnum, IsIn, IsInt, IsOptional, IsPositive, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EstadoPago, EstadoPedido, MetodoPago, TipoPedido } from '../pedido.entity';
 
@@ -26,6 +26,9 @@ export class QueryPedidosDto {
 
   @IsOptional() @IsString()
   hasta?: string;
+
+  @IsOptional() @IsIn(['PATIO', 'OFICINA'])
+  ambiente?: string;
 
   @IsOptional() @Type(() => Number) @IsInt()
   page?: number;

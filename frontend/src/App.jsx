@@ -16,8 +16,6 @@ import ReportesPage from './pages/gerente/ReportesPage'
 import RecetaPage from './pages/gerente/RecetaPage'
 import PedidosPage from './pages/gerente/PedidosPage'
 import CocinaPage from './pages/gerente/CocinaPage'
-
-import DashboardCajero from "./pages/cajero/DashboardCajero";
 import PedidosCocinaPage from './pages/cocina/PedidosCocinaPage'
 import PedidosMeseroPage from './pages/mesero/PedidosMeseroPage'
 
@@ -49,7 +47,7 @@ export default function App() {
       <Route element={<ProtectedRoute roles={['CAJERO']} />}>
         <Route path="/cajero" element={<CajeroLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardCajero />} />
+          <Route path="dashboard" element={<DashboardGerente />} />
           <Route path="pedidos" element={<PedidosPage />} />
           <Route path="gastos" element={<GastosPage />} />
           <Route path="caja" element={<CajaPage />} />

@@ -59,7 +59,9 @@ export default function PedidosPage() {
   const [searchProducto, setSearchProducto] = useState("");
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const [totalPedidos, setTotalPedidos] = useState(0);
+  const [filtros, setFiltros] = useState({ tipo_pedido: '', ambiente: '' });
+  const PAGE_SIZE = 15;
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [], extras: [] });
   const [appendContext, setAppendContext] = useState(null);
@@ -97,19 +99,22 @@ export default function PedidosPage() {
     }
   }
 
-  async function loadData() {
+  async function loadData(page = currentPage, filt = filtros) {
     try {
       setLoading(true);
       const cajaData = await cajaService.getCajaAbierta();
       setCajaAbierta(cajaData || null);
-      
 
       const prodData = await productoService.getAll({ activo: 1 });
       setProductos(prodData.data ?? prodData ?? []);
 
-      const data = await pedidoService.getAll();
-      setPedidos(asArray(data));
-      setCurrentPage(1);
+      const params = { page, pageSize: PAGE_SIZE };
+      if (filt.tipo_pedido) params.tipo_pedido = filt.tipo_pedido;
+      if (filt.ambiente)    params.ambiente    = filt.ambiente;
+
+      const result = await pedidoService.getAll(params);
+      setPedidos(result.data ?? []);
+      setTotalPedidos(result.total ?? 0);
 
       await cargarStockDelDia();
     } catch (err) {
@@ -119,7 +124,7 @@ export default function PedidosPage() {
     }
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(1, filtros); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categorias = ["Todos", "PLATO", "BEBIDA", "EXTRA"];
 
@@ -201,7 +206,7 @@ export default function PedidosPage() {
       } else {
         const nMesa = Number(pedidoActual.num_mesa);
         if (!mesaValida(nMesa)) {
-          toast.warning("Número de mesa inválido (1–9)");
+          toast.warning("Número de mesa inválido (1–8)");
           return false;
         }
       }
@@ -263,7 +268,7 @@ export default function PedidosPage() {
         });
         setAppendContext(null);
         setActiveTab("listado");
-        loadData();
+        loadData(1, filtros);
       } catch (err) {
         toast.error(getAxiosMessage(err));
       } finally {
@@ -284,7 +289,7 @@ export default function PedidosPage() {
           items: [],
         });
         setActiveTab("listado");
-        loadData();
+        loadData(1, filtros);
       } catch (err) {
         toast.error(getAxiosMessage(err));
       } finally {
@@ -357,9 +362,11 @@ export default function PedidosPage() {
     const payloadUpdate = {};
     if (p.tipo_pedido) payloadUpdate.tipo_pedido = p.tipo_pedido;
     if (p.tipo_pedido === "MESA" || p.tipo_pedido === "MIXTO") {
-      payloadUpdate.num_mesa = Number(p.num_mesa ?? 1);
+      payloadUpdate.num_mesa = p.ambiente === "OFICINA" ? null : Number(p.num_mesa ?? 1);
+      payloadUpdate.nombre_cliente = p.nombre_cliente ?? null;
     } else if (p.tipo_pedido === "LLEVAR") {
       payloadUpdate.num_mesa = null;
+      payloadUpdate.nombre_cliente = null;
     }
 
     if (Object.keys(payloadUpdate).length > 0) {
@@ -458,7 +465,7 @@ export default function PedidosPage() {
 
     setModalEditar({ open: false, loading: false, pedido: null });
     await cargarStockDelDia();
-    await loadData();
+    await loadData(currentPage, filtros);
   } catch (err) {
     console.error("Editar/pagar pedido ->", err?.response?.data || err);
     setModalEditar((prev) => ({ ...prev, loading: false }));
@@ -551,7 +558,7 @@ export default function PedidosPage() {
       await pedidoService.delete(p.id_pedido);
       toast.success("Pedido eliminado");
       await cargarStockDelDia();
-      await loadData();
+      await loadData(currentPage, filtros);
     } catch (err) {
       console.error(err);
       toast.error(getAxiosMessage(err));
@@ -562,7 +569,7 @@ export default function PedidosPage() {
     try {
       await pedidoService.updatePagoEstado(p.id_pedido, metodo);
       toast.success(`Pedido #${p.num_pedido} cobrado en ${metodo}`);
-      await loadData();
+      await loadData(currentPage, filtros);
     } catch (err) {
       toast.error(getAxiosMessage(err));
     }
@@ -649,19 +656,33 @@ export default function PedidosPage() {
         <Button
           variant="outline-success"
           size="sm"
-          onClick={() =>
+          onClick={() => {
+            const itemKey = item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto;
+            const originalItem = (pedidoRef.originalItems ?? []).find(
+              (o) => (o.id_detalle ?? o.id_detalle_pedido ?? o.id_producto) === itemKey
+            );
+            const originalCantidad = Number(originalItem?.cantidad ?? 0);
+            const nuevaCantidad = Number(item.cantidad) + 1;
+            const delta = nuevaCantidad - originalCantidad;
+            const stockDisp = stockMap.get(item.id_producto) ?? 0;
+            if (delta > 0 && stockDisp < delta) {
+              toast.warning(
+                `Sin stock suficiente para "${item.producto?.nombre ?? item.nombre}" — solo quedan ${stockDisp} unidad(es) disponibles.`
+              );
+              return;
+            }
             setModalEditar((prev) => ({
               ...prev,
               pedido: {
                 ...prev.pedido,
                 items: prev.pedido.items.map((i) =>
-                  (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) === (item.id_detalle ?? item.id_detalle_pedido ?? item.id_producto)
-                    ? { ...i, cantidad: Number(i.cantidad) + 1 }
+                  (i.id_detalle ?? i.id_detalle_pedido ?? i.id_producto) === itemKey
+                    ? { ...i, cantidad: nuevaCantidad }
                     : i
                 ),
               },
-            }))
-          }
+            }));
+          }}
         >
           <i className="bi bi-plus"></i>
         </Button>
@@ -1126,13 +1147,53 @@ export default function PedidosPage() {
             <i className="bi bi-clipboard-data me-2"></i>Listado de Pedidos
           </Card.Header>
           <Card.Body>
+            {/* Filtros */}
+            <Row className="mb-3 g-2 align-items-end">
+              <Col xs="auto">
+                <Form.Label className="fw-semibold mb-1">Tipo</Form.Label>
+                <div className="d-flex gap-2 flex-wrap">
+                  {[{v:'',l:'Todos'},{v:'MESA',l:'Mesa'},{v:'LLEVAR',l:'Llevar'},{v:'MIXTO',l:'Mixto'}].map(({v,l}) => (
+                    <Form.Check
+                      key={v} type="radio" id={`f-tipo-${v}`}
+                      label={l} value={v}
+                      checked={filtros.tipo_pedido === v}
+                      onChange={() => {
+                        const nf = { ...filtros, tipo_pedido: v };
+                        setFiltros(nf);
+                        setCurrentPage(1);
+                        loadData(1, nf);
+                      }}
+                    />
+                  ))}
+                </div>
+              </Col>
+              <Col xs="auto">
+                <Form.Label className="fw-semibold mb-1">Ambiente</Form.Label>
+                <div className="d-flex gap-2 flex-wrap">
+                  {[{v:'',l:'Todos'},{v:'PATIO',l:'Patio'},{v:'OFICINA',l:'Oficina'}].map(({v,l}) => (
+                    <Form.Check
+                      key={v} type="radio" id={`f-amb-${v}`}
+                      label={l} value={v}
+                      checked={filtros.ambiente === v}
+                      onChange={() => {
+                        const nf = { ...filtros, ambiente: v };
+                        setFiltros(nf);
+                        setCurrentPage(1);
+                        loadData(1, nf);
+                      }}
+                    />
+                  ))}
+                </div>
+              </Col>
+            </Row>
+
             {!pedidos.length ? (
               <p className="text-center text-muted my-4">
                 <i className="bi bi-inbox me-2"></i>No hay pedidos registrados
               </p>
             ) : (() => {
-              const totalPages = Math.ceil(pedidos.length / PAGE_SIZE);
-              const pagina = pedidos.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+              const totalPages = Math.ceil(totalPedidos / PAGE_SIZE);
+              const pagina = pedidos; // ya paginado desde el servidor
               return (
                 <>
                   <div className="table-responsive">
@@ -1214,11 +1275,11 @@ export default function PedidosPage() {
                   {totalPages > 1 && (
                     <div className="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
                       <small className="text-muted">
-                        Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, pedidos.length)} de {pedidos.length} pedidos
+                        Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, totalPedidos)} de {totalPedidos} pedidos
                       </small>
                       <Pagination size="sm" className="mb-0">
-                        <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
-                        <Pagination.Prev onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} />
+                        <Pagination.First onClick={() => { setCurrentPage(1); loadData(1, filtros); }} disabled={currentPage === 1} />
+                        <Pagination.Prev onClick={() => { const p = currentPage - 1; setCurrentPage(p); loadData(p, filtros); }} disabled={currentPage === 1} />
                         {Array.from({ length: totalPages }, (_, i) => i + 1)
                           .filter(n => n === 1 || n === totalPages || Math.abs(n - currentPage) <= 1)
                           .reduce((acc, n, idx, arr) => {
@@ -1233,14 +1294,14 @@ export default function PedidosPage() {
                               <Pagination.Item
                                 key={item}
                                 active={item === currentPage}
-                                onClick={() => setCurrentPage(item)}
+                                onClick={() => { setCurrentPage(item); loadData(item, filtros); }}
                               >
                                 {item}
                               </Pagination.Item>
                             )
                           )}
-                        <Pagination.Next onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} />
-                        <Pagination.Last onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} />
+                        <Pagination.Next onClick={() => { const p = currentPage + 1; setCurrentPage(p); loadData(p, filtros); }} disabled={currentPage === totalPages} />
+                        <Pagination.Last onClick={() => { setCurrentPage(totalPages); loadData(totalPages, filtros); }} disabled={currentPage === totalPages} />
                       </Pagination>
                     </div>
                   )}
@@ -1332,26 +1393,58 @@ export default function PedidosPage() {
                 </Col>
               </Row>
 
-              {/* *** NUEVO: editar mesa cuando aplica */}
+              {/* Ambiente / Mesa / Nombre cliente */}
               {modalEditar.pedido.tipo_pedido !== "LLEVAR" && (
                 <Row className="mb-3">
                   <Col md={4}>
                     <Form.Group>
-                      <Form.Label>Número de Mesa</Form.Label>
+                      <Form.Label>Ambiente</Form.Label>
                       <Form.Control
-                        type="number"
-                        min={1}
-                        max={9}
-                        value={modalEditar.pedido.num_mesa ?? ""}
-                        onChange={(e) =>
-                          setModalEditar((prev) => ({
-                            ...prev,
-                            pedido: { ...prev.pedido, num_mesa: e.target.value },
-                          }))
-                        }
+                        type="text"
+                        readOnly
+                        value={modalEditar.pedido.ambiente === "OFICINA" ? "Oficina" : "Patio"}
+                        className="bg-light"
                       />
                     </Form.Group>
                   </Col>
+                  {(modalEditar.pedido.ambiente ?? "PATIO") !== "OFICINA" && (
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Número de Mesa</Form.Label>
+                        <Form.Select
+                          value={modalEditar.pedido.num_mesa ?? ""}
+                          onChange={(e) =>
+                            setModalEditar((prev) => ({
+                              ...prev,
+                              pedido: { ...prev.pedido, num_mesa: e.target.value },
+                            }))
+                          }
+                        >
+                          <option value="">-</option>
+                          {[1,2,3,4,5,6,7,8].map((n) => (
+                            <option key={n} value={n}>Mesa {n}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  )}
+                  {modalEditar.pedido.ambiente === "OFICINA" && (
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Nombre Cliente</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={modalEditar.pedido.nombre_cliente ?? ""}
+                          onChange={(e) =>
+                            setModalEditar((prev) => ({
+                              ...prev,
+                              pedido: { ...prev.pedido, nombre_cliente: e.target.value },
+                            }))
+                          }
+                        />
+                      </Form.Group>
+                    </Col>
+                  )}
                 </Row>
               )}
 
@@ -1384,6 +1477,18 @@ export default function PedidosPage() {
               {modalEditar.pedido.items
                 .filter((i) => i.producto?.tipo === "BEBIDA")
                 .map((item) => renderItemRow(modalEditar.pedido, item))}
+
+              {/* Extras */}
+              {modalEditar.pedido.items.some((i) => i.producto?.tipo === "EXTRA") && (
+                <>
+                  <h6 className="fw-bold text-secondary mt-3">
+                    <i className="bi bi-plus-circle me-1"></i> Extras
+                  </h6>
+                  {modalEditar.pedido.items
+                    .filter((i) => i.producto?.tipo === "EXTRA")
+                    .map((item) => renderItemRow(modalEditar.pedido, item))}
+                </>
+              )}
             </>
           ) : (
             <p className="text-center text-muted">

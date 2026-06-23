@@ -14,4 +14,9 @@ export const meseroService = {
     });
     return data;
   },
+
+  async entregar(id_pedido) {
+    const { data } = await api.patch(`/pedidos/${id_pedido}/entregar`);
+    return data;
+  },
 };

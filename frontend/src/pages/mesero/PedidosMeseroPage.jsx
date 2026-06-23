@@ -3,6 +3,7 @@ import { Button, Container, Row, Col, Card, Spinner, Badge, Alert } from 'react-
 import { toast } from 'sonner';
 import { meseroService } from '../../services/meseroService';
 import { cajaService } from '../../services/cajaService';
+import { socketService } from '../../services/socketService';
 import { BsClipboardCheck, BsCheckLg, BsCheck2Circle } from 'react-icons/bs';
 import '../../styles/CocinaPage.css';
 
@@ -23,23 +24,10 @@ function playBeep() {
   } catch (_) {}
 }
 
-function loadAttended() {
-  try {
-    return new Set(JSON.parse(localStorage.getItem('mesero_atendidos') || '[]'));
-  } catch {
-    return new Set();
-  }
-}
-
-function saveAttended(set) {
-  localStorage.setItem('mesero_atendidos', JSON.stringify([...set]));
-}
-
 export default function PedidosMeseroPage() {
   const [caja, setCaja]         = useState(null);
   const [pedidos, setPedidos]   = useState([]);
   const [loading, setLoading]   = useState(false);
-  const [atendidos, setAtendidos] = useState(loadAttended);
   const pollingRef  = useRef(null);
   const prevTotal   = useRef(null);
 
@@ -58,10 +46,11 @@ export default function PedidosMeseroPage() {
 
       const data = await meseroService.getTodosActivos({ id_caja: cajaAbierta.id_caja });
       const lista = Array.isArray(data) ? data : [];
-      setPedidos(lista);
+      // Filtrar LLEVAR y ENTREGADOS — el mesero solo ve pedidos de mesa/oficina activos
+      const visibles = lista.filter(p => p.tipo_pedido !== 'LLEVAR' && p.estado_pedido !== 'ENTREGADO');
+      setPedidos(visibles);
 
-      // Notificar cuando llega un pedido nuevo
-      const total = lista.length;
+      const total = visibles.length;
       if (prevTotal.current !== null && total > prevTotal.current) {
         playBeep();
         toast.info(`🛎️ Nuevo pedido recibido (${total} en total)`, { duration: 4000 });
@@ -75,31 +64,44 @@ export default function PedidosMeseroPage() {
     }
   }, []);
 
-  function marcarAtendido(id_pedido) {
-    const nuevo = new Set(atendidos);
-    nuevo.add(id_pedido);
-    setAtendidos(nuevo);
-    saveAttended(nuevo);
+  async function marcarAtendido(id_pedido) {
+    try {
+      await meseroService.entregar(id_pedido);
+    } catch (_) {
+      // Si el backend rechaza (pedido no en LISTO), igual lo retiramos visualmente
+    }
+    setPedidos(prev => prev.filter(p => p.id_pedido !== id_pedido));
     toast.success('Mesa atendida');
   }
 
+  // Polling de respaldo cada 30 s
   useEffect(() => {
     cargarDatos();
     pollingRef.current = setInterval(cargarDatos, 30000);
     return () => clearInterval(pollingRef.current);
   }, [cargarDatos]);
 
-  const pedidosVisibles = pedidos.filter(p => !atendidos.has(p.id_pedido) && p.tipo_pedido !== 'LLEVAR');
-  const pendientes = pedidosVisibles.filter(p => p.estado_pedido === 'PENDIENTE');
-  const listos     = pedidosVisibles.filter(p => p.estado_pedido === 'LISTO');
+  // WebSockets — actualización en tiempo real
+  useEffect(() => {
+    const socket = socketService.connect();
 
-  const getAmbienteBadge = (pedido) => {
-    if (pedido.tipo_pedido === 'LLEVAR')
-      return <Badge bg="secondary">Para Llevar — {pedido.nombre_cliente || ''}</Badge>;
-    if (pedido.ambiente === 'OFICINA')
-      return <Badge bg="primary">🏢 Oficina — {pedido.nombre_cliente}</Badge>;
-    return <Badge bg="success">🌿 Patio — Mesa {pedido.num_mesa}</Badge>;
-  };
+    socket.on('pedido:nuevo',        () => cargarDatos());
+    socket.on('pedido:actualizado',  () => cargarDatos());
+    socket.on('item:listo',          () => cargarDatos());
+    socket.on('pedido:entregado', ({ id_pedido }) => {
+      setPedidos(prev => prev.filter(p => p.id_pedido !== id_pedido));
+    });
+
+    return () => {
+      socket.off('pedido:nuevo');
+      socket.off('pedido:actualizado');
+      socket.off('item:listo');
+      socket.off('pedido:entregado');
+    };
+  }, [cargarDatos]);
+
+  const pendientes = pedidos.filter(p => p.estado_pedido === 'PENDIENTE');
+  const listos     = pedidos.filter(p => p.estado_pedido === 'LISTO');
 
   const renderTarjeta = (pedido) => (
     <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
@@ -212,9 +214,9 @@ export default function PedidosMeseroPage() {
         <Col md={12}>
           <div className="d-flex justify-content-between align-items-end mb-4">
             <h3 className="text-marron fw-bold">
-              Pedidos por Atender ({pedidosVisibles.length})
+              Pedidos por Atender ({pedidos.length})
             </h3>
-            <h6 className="text-muted fw-semibold">Actualización automática cada 30 s</h6>
+            <h6 className="text-muted fw-semibold">Actualización en tiempo real</h6>
           </div>
 
           {loading ? (
@@ -222,11 +224,10 @@ export default function PedidosMeseroPage() {
               <Spinner animation="border" variant="success" />
               <p className="mt-2 text-muted">Cargando pedidos...</p>
             </div>
-          ) : pedidosVisibles.length === 0 ? (
+          ) : pedidos.length === 0 ? (
             <p className="lead text-center p-5 text-muted">No hay pedidos pendientes de atención</p>
           ) : (
             <Row className="g-4">
-              {/* Primero los LISTOS (prioridad) luego PENDIENTES */}
               {[...listos, ...pendientes].map(renderTarjeta)}
             </Row>
           )}

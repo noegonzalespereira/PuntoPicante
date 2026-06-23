@@ -3,6 +3,7 @@ import { Button, Container, Row, Col, Card, Spinner, Badge, Alert } from 'react-
 import { toast } from 'sonner';
 import { cocinaService } from '../../services/cocinaService';
 import { cajaService } from '../../services/cajaService';
+import { socketService } from '../../services/socketService';
 import '../../styles/CocinaPage.css';
 import { BsClipboardCheck, BsCheckLg, BsEye } from 'react-icons/bs';
 import PageHeader from "../../components/molecules/PageHeader";
@@ -127,7 +128,7 @@ const CocinaPage = () => {
     };
   }, []);
 
-  // Polling cada 5 s para detectar pedidos nuevos rápidamente
+  // Polling de respaldo cada 30 s
   useEffect(() => {
     cargarCajaYDatos();
     pollingRef.current = setInterval(() => {
@@ -138,8 +139,35 @@ const CocinaPage = () => {
     };
   }, [cargarCajaYDatos]);
 
-  // Ítems pendientes dentro de un pedido (con botón "Listo")
-  const renderPedidoItemsPendientes = (items, num_mesa, id_pedido) => {
+  // WebSockets — actualización en tiempo real
+  useEffect(() => {
+    const socket = socketService.connect();
+
+    socket.on('pedido:nuevo',       () => cargarCajaYDatos());
+    socket.on('pedido:actualizado', () => cargarCajaYDatos());
+    socket.on('item:listo', ({ id_pedido, id_detalle }) => {
+      // Actualización optimista: evitar esperar al polling
+      setPedidos(prev => prev.map(p => {
+        if (p.id_pedido !== id_pedido) return p;
+        const newItems = (p.items ?? []).map(it =>
+          it.id_detalle_pedido === id_detalle ? { ...it, estado_item: 'LISTO' } : it
+        );
+        const allListo = newItems.every(it => it.estado_item === 'LISTO');
+        return { ...p, items: newItems, estado_pedido: allListo ? 'LISTO' : p.estado_pedido };
+      }));
+    });
+    socket.on('pedido:entregado', () => cargarCajaYDatos());
+
+    return () => {
+      socket.off('pedido:nuevo');
+      socket.off('pedido:actualizado');
+      socket.off('item:listo');
+      socket.off('pedido:entregado');
+    };
+  }, [cargarCajaYDatos]);
+
+  // Ítems pendientes dentro de un pedido (con botón "Listo") — solo PLATOS
+  const renderPedidoItemsPendientes = (items, pedido, id_pedido) => {
     const itemsPendientes = (items ?? []).filter(
       (it) => it.estado_item === 'PENDIENTE' && it.producto?.tipo === 'PLATO'
     );
@@ -147,7 +175,7 @@ const CocinaPage = () => {
     if (!itemsPendientes.length) {
       return (
         <div className="text-center p-3">
-          <p className="text-success fw-bold">✅ Todos los platos están listos.</p>
+          <p className="text-success fw-bold">Todos los ítems están listos.</p>
         </div>
       );
     }
@@ -161,9 +189,11 @@ const CocinaPage = () => {
 
             <div className="d-flex align-items-center mt-1">
               {item.destino === 'MESA' ? (
-                <Badge bg="info" className="destino-badge me-2">
-                  Mesa {num_mesa}
-                </Badge>
+                pedido.ambiente === 'OFICINA' ? (
+                  <Badge bg="primary" className="destino-badge me-2">Oficina</Badge>
+                ) : (
+                  <Badge bg="info" className="destino-badge me-2">Mesa {pedido.num_mesa}</Badge>
+                )
               ) : (
                 <Badge bg="secondary" className="destino-badge me-2">
                   {item.destino}
@@ -196,7 +226,9 @@ const CocinaPage = () => {
   const mostrarPedidosPendientes = () => {
     const pendientes = (pedidos ?? []).filter((p) =>
       p.estado_pedido === 'PENDIENTE' &&
-      (p.items ?? []).some(it => it.producto?.tipo === 'PLATO' && it.estado_item === 'PENDIENTE')
+      (p.items ?? []).some(
+        it => it.producto?.tipo === 'PLATO' && it.estado_item === 'PENDIENTE'
+      )
     );
 
     if (!pendientes.length) {
@@ -211,18 +243,25 @@ const CocinaPage = () => {
       <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
         <Card className="shadow-sm border-0 p-3 card-pedido-individual card-pendiente h-100">
           <Card.Body className="d-flex flex-column">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h5 className="card-title text-marron">Pedido #{pedido.num_pedido || pedido.id_pedido}</h5>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <h5 className="card-title text-marron mb-0">
+                {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+              </h5>
               <span className="tag-pendiente">
                 <BsEye className="me-1" /> Pendiente
               </span>
             </div>
+            {pedido.ambiente === 'OFICINA' && (
+              <div className="mb-1">
+                <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
+              </div>
+            )}
 
-            <hr className="my-3" />
+            <hr className="my-2" />
 
             {/* Ítems pendientes del pedido */}
             <div className="pedido-items-list flex-grow-1">
-              {renderPedidoItemsPendientes(pedido.items, pedido.num_mesa, pedido.id_pedido)}
+              {renderPedidoItemsPendientes(pedido.items, pedido, pedido.id_pedido)}
             </div>
           </Card.Body>
         </Card>
@@ -243,19 +282,28 @@ const CocinaPage = () => {
     }
 
     return listos.map((pedido) => {
-      const platosDelPedido = (pedido.items ?? []).filter(it => it.producto?.tipo === 'PLATO');
+      const platosDelPedido = (pedido.items ?? []).filter(
+        it => it.producto?.tipo === 'PLATO'
+      );
       return (
         <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
           <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
             <Card.Body className="d-flex flex-column">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="card-title text-success">Pedido #{pedido.num_pedido || pedido.id_pedido}</h5>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <h5 className="card-title text-success mb-0">
+                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                </h5>
                 <span className="tag-listo">
                   <BsCheckLg className="me-1" /> Listo
                 </span>
               </div>
+              {pedido.ambiente === 'OFICINA' && (
+                <div className="mb-1">
+                  <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
+                </div>
+              )}
 
-              <hr className="my-3" />
+              <hr className="my-2" />
 
               <div className="pedido-items-list flex-grow-1">
                 {platosDelPedido.map((item, index) => (
@@ -265,9 +313,11 @@ const CocinaPage = () => {
                         <strong className="d-block">{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
                         <div className="d-flex align-items-center mt-1">
                           {item.destino === 'MESA' ? (
-                            <Badge bg="info" className="destino-badge me-2">
-                              Mesa {pedido.num_mesa ?? '-'}
-                            </Badge>
+                            pedido.ambiente === 'OFICINA' ? (
+                              <Badge bg="primary" className="destino-badge me-2">Oficina</Badge>
+                            ) : (
+                              <Badge bg="info" className="destino-badge me-2">Mesa {pedido.num_mesa}</Badge>
+                            )
                           ) : (
                             <Badge bg="secondary" className="destino-badge me-2">
                               {item.destino}

@@ -11,8 +11,7 @@ import { CreatePedidoDto } from './dto/create-pedido.dto';
 import { UpdatePedidoDto } from './dto/update-pedido.dto';
 import { QueryPedidosDto } from './dto/query-pedidos.dto';
 import { InventarioService } from '../inventario/inventario.service';
-import { timeStamp } from 'console';
-import { domainToASCII } from 'url';
+import { PedidosGateway } from './pedidos.gateway';
 
 type Rol = 'GERENTE' | 'CAJERO' | 'COCINA' | 'MESERO';
 
@@ -25,6 +24,7 @@ export class PedidosService {
     @InjectRepository(Caja) private readonly cajas: Repository<Caja>,
     private readonly dataSource: DataSource,
     private readonly inventario: InventarioService,
+    private readonly gateway: PedidosGateway,
   ) {}
 
   private parseDateMaybe(v?: string) {
@@ -251,6 +251,7 @@ export class PedidosService {
       const tipoFinal = await this.validarTipo_Y_Mesa(pedido.id_pedido,qr.manager);
       const total = await this.recalcularTotal(pedido.id_pedido, qr.manager);
       await qr.commitTransaction();
+      this.gateway.emitNuevoPedido({ id_pedido: pedido.id_pedido, num_pedido: pedido.num_pedido, ambiente: pedido.ambiente, num_mesa: pedido.num_mesa, nombre_cliente: pedido.nombre_cliente });
       return { id_pedido: pedido.id_pedido, num_pedido: pedido.num_pedido, total, tipo_pedido: pedido.tipo_pedido, convertidoAMixto:false };
     } catch (e) {
       await qr.rollbackTransaction();
@@ -272,11 +273,14 @@ export class PedidosService {
 
     if (dto.tipo_pedido !== undefined) p.tipo_pedido = dto.tipo_pedido;
     if (dto.num_mesa !== undefined) p.num_mesa = dto.num_mesa as any;
+    if (dto.ambiente !== undefined) p.ambiente = dto.ambiente;
+    if (dto.nombre_cliente !== undefined) p.nombre_cliente = dto.nombre_cliente;
     if (dto.metodo_pago !== undefined) p.metodo_pago = dto.metodo_pago;
 
     if (!dto.items) {
       await this.pedidos.save(p);
       const { tipo_final, convertidoAMixto } = await this.validarTipo_Y_Mesa(id_pedido);
+      this.gateway.emitPedidoActualizado({ id_pedido, tipo_pedido: tipo_final });
       return { ok: true, tipo_pedido: tipo_final, convertidoAMixto };
     }
 
@@ -521,6 +525,7 @@ export class PedidosService {
     if (q.estado_pago) where.estado_pago = q.estado_pago;
     if (q.estado_pedido) where.estado_pedido = q.estado_pedido;
     if (q.metodo_pago) where.metodo_pago = q.metodo_pago;
+    if (q.ambiente) where.ambiente = q.ambiente;
 
     const d1 = this.parseDateMaybe(q.desde);
     const d2 = this.parseDateMaybe(q.hasta);
@@ -686,11 +691,10 @@ async resumenCocinaPorCaja(id_caja?: number) {
   async marcarPedidoEntregado(id_pedido: number) {
     const p = await this.pedidos.findOne({ where: { id_pedido } });
     if (!p) throw new NotFoundException('Pedido no existe');
-    if (p.estado_pedido !== EstadoPedido.LISTO)
-      throw new BadRequestException('Solo se puede entregar un pedido en estado LISTO');
 
     p.estado_pedido = EstadoPedido.ENTREGADO;
     await this.pedidos.save(p);
+    this.gateway.emitPedidoEntregado(id_pedido);
     return { ok: true, estado_pedido: p.estado_pedido };
   }
 
@@ -706,8 +710,7 @@ async resumenCocinaPorCaja(id_caja?: number) {
       detalle.estado_item = EstadoItem.LISTO;
       await this.detalles.save(detalle);
       const nuevoEstadoResumen= await this.recalcularEstadoPedido(detalle.pedido.id_pedido);
-
-      //Recalcular el estado resumen del Pedido principal
+      this.gateway.emitItemListo({ id_pedido: detalle.pedido.id_pedido, id_detalle });
 
       return { ok: true, id_detalle, estado_pedido_resumen:nuevoEstadoResumen };
   }

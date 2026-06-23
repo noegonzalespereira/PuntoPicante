@@ -7,6 +7,7 @@ import { cajaService } from '../../services/cajaService';
 import { stockService } from '../../services/stockService';
 import { gastoService } from '../../services/gastosService';
 import { reportesService } from '../../services/reportesService';
+import { useAuth } from '../../context/AuthContext';
 
 import '../../styles/DashboardPage.css';
 import PageHeader from "../../components/molecules/PageHeader";
@@ -39,8 +40,9 @@ function formatFechaVisual(ymd) {
 
 const DashboardGerente = () => {
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const basePath = user?.rol === 'CAJERO' ? '/cajero' : '/gerente';
 
   const [stats, setStats] = useState({
     fechaRef: hoyBolivia(),
@@ -277,7 +279,7 @@ const DashboardGerente = () => {
     <div className="dashboard-page">
       {/* HEADER */}
       <PageHeader
-        title="Dashboard Gerencial"
+        title={user?.rol === 'CAJERO' ? 'Dashboard' : 'Dashboard Gerencial'}
         subtitle={`Métricas del día de trabajo (${formatFechaVisual(stats.fechaRef)})`}
       />
 
@@ -331,7 +333,7 @@ const DashboardGerente = () => {
               </h5>
               {renderStockTable()}
               <div className="text-end mt-3">
-                <Button variant="outline-primary" onClick={() => navigate('/gerente/reportes')}>
+                <Button variant="outline-primary" onClick={() => navigate(`${basePath}/reportes`)}>
                   <BsCalendar className="me-2" /> Ver Reportes
                 </Button>
               </div>
