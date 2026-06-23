@@ -569,7 +569,12 @@ export default function PedidosPage() {
     try {
       await pedidoService.updatePagoEstado(p.id_pedido, metodo);
       toast.success(`Pedido #${p.num_pedido} cobrado en ${metodo}`);
-      await loadData(currentPage, filtros);
+      // Actualización local — evita recargar toda la página
+      setPedidos(prev => prev.map(x =>
+        x.id_pedido === p.id_pedido
+          ? { ...x, estado_pago: 'PAGADO', metodo_pago: metodo }
+          : x
+      ));
     } catch (err) {
       toast.error(getAxiosMessage(err));
     }
@@ -1151,38 +1156,42 @@ export default function PedidosPage() {
             <Row className="mb-3 g-2 align-items-end">
               <Col xs="auto">
                 <Form.Label className="fw-semibold mb-1">Tipo</Form.Label>
-                <div className="d-flex gap-2 flex-wrap">
-                  {[{v:'',l:'Todos'},{v:'MESA',l:'Mesa'},{v:'LLEVAR',l:'Llevar'},{v:'MIXTO',l:'Mixto'}].map(({v,l}) => (
-                    <Form.Check
-                      key={v} type="radio" id={`f-tipo-${v}`}
-                      label={l} value={v}
-                      checked={filtros.tipo_pedido === v}
-                      onChange={() => {
-                        const nf = { ...filtros, tipo_pedido: v };
-                        setFiltros(nf);
-                        setCurrentPage(1);
-                        loadData(1, nf);
-                      }}
-                    />
-                  ))}
-                </div>
+                <Form.Select
+                  value={filtros.tipo_pedido}
+                  style={{ minWidth: 130 }}
+                  onChange={(e) => {
+                    const nf = { ...filtros, tipo_pedido: e.target.value };
+                    setFiltros(nf);
+                    setCurrentPage(1);
+                    loadData(1, nf);
+                  }}
+                >
+                  <option value="">Todos</option>
+                  <option value="MESA">Mesa</option>
+                  <option value="LLEVAR">Llevar</option>
+                  <option value="MIXTO">Mixto</option>
+                </Form.Select>
               </Col>
               <Col xs="auto">
                 <Form.Label className="fw-semibold mb-1">Ambiente</Form.Label>
-                <div className="d-flex gap-2 flex-wrap">
-                  {[{v:'',l:'Todos'},{v:'PATIO',l:'Patio'},{v:'OFICINA',l:'Oficina'}].map(({v,l}) => (
-                    <Form.Check
-                      key={v} type="radio" id={`f-amb-${v}`}
-                      label={l} value={v}
-                      checked={filtros.ambiente === v}
-                      onChange={() => {
-                        const nf = { ...filtros, ambiente: v };
-                        setFiltros(nf);
-                        setCurrentPage(1);
-                        loadData(1, nf);
-                      }}
-                    />
-                  ))}
+                <Form.Select
+                  value={filtros.ambiente}
+                  style={{ minWidth: 130 }}
+                  onChange={(e) => {
+                    const nf = { ...filtros, ambiente: e.target.value };
+                    setFiltros(nf);
+                    setCurrentPage(1);
+                    loadData(1, nf);
+                  }}
+                >
+                  <option value="">Todos</option>
+                  <option value="PATIO">Patio</option>
+                  <option value="OFICINA">Oficina</option>
+                </Form.Select>
+              </Col>
+              <Col xs="auto" className="ms-auto d-flex align-items-end">
+                <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                  {totalPedidos} resultado{totalPedidos !== 1 ? 's' : ''}
                 </div>
               </Col>
             </Row>

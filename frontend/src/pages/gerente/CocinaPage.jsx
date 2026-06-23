@@ -244,9 +244,12 @@ const CocinaPage = () => {
         <Card className="shadow-sm border-0 p-3 card-pedido-individual card-pendiente h-100">
           <Card.Body className="d-flex flex-column">
             <div className="d-flex justify-content-between align-items-center mb-2">
-              <h5 className="card-title text-marron mb-0">
-                {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-              </h5>
+              <div>
+                <h5 className="card-title text-marron mb-0">
+                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                </h5>
+                <small className="text-muted">Pedido #{pedido.num_pedido}</small>
+              </div>
               <span className="tag-pendiente">
                 <BsEye className="me-1" /> Pendiente
               </span>
@@ -290,9 +293,12 @@ const CocinaPage = () => {
           <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
             <Card.Body className="d-flex flex-column">
               <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="card-title text-success mb-0">
-                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-                </h5>
+                <div>
+                  <h5 className="card-title text-success mb-0">
+                    {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                  </h5>
+                  <small className="text-muted">Pedido #{pedido.num_pedido}</small>
+                </div>
                 <span className="tag-listo">
                   <BsCheckLg className="me-1" /> Listo
                 </span>

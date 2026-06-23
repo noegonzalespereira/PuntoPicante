@@ -28,8 +28,10 @@ export default function PedidosMeseroPage() {
   const [caja, setCaja]         = useState(null);
   const [pedidos, setPedidos]   = useState([]);
   const [loading, setLoading]   = useState(false);
-  const pollingRef  = useRef(null);
-  const prevTotal   = useRef(null);
+  const pollingRef    = useRef(null);
+  const prevTotal     = useRef(null);
+  // IDs marcados como atendidos localmente; evita que re-fetches los traigan de vuelta
+  const dismissedRef  = useRef(new Set());
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -40,20 +42,30 @@ export default function PedidosMeseroPage() {
 
       if (!cajaAbierta) {
         setPedidos([]);
+        dismissedRef.current.clear();
         prevTotal.current = null;
         return;
       }
 
       const data = await meseroService.getTodosActivos({ id_caja: cajaAbierta.id_caja });
       const lista = Array.isArray(data) ? data : [];
-      // Filtrar LLEVAR y ENTREGADOS — el mesero solo ve pedidos de mesa/oficina activos
-      const visibles = lista.filter(p => p.tipo_pedido !== 'LLEVAR' && p.estado_pedido !== 'ENTREGADO');
+      const visibles = lista.filter(
+        p => p.tipo_pedido !== 'LLEVAR'
+          && p.estado_pedido !== 'ENTREGADO'
+          && !dismissedRef.current.has(p.id_pedido)
+      );
       setPedidos(visibles);
+
+      // Limpiar dismissed que ya no están en la lista (el backend los eliminó)
+      const idsActivos = new Set(lista.map(p => p.id_pedido));
+      for (const id of dismissedRef.current) {
+        if (!idsActivos.has(id)) dismissedRef.current.delete(id);
+      }
 
       const total = visibles.length;
       if (prevTotal.current !== null && total > prevTotal.current) {
         playBeep();
-        toast.info(`🛎️ Nuevo pedido recibido (${total} en total)`, { duration: 4000 });
+        toast.info(`Nuevo pedido recibido (${total} en total)`, { duration: 4000 });
       }
       prevTotal.current = total;
     } catch (err) {
@@ -65,13 +77,18 @@ export default function PedidosMeseroPage() {
   }, []);
 
   async function marcarAtendido(id_pedido) {
+    // Marcar inmediatamente como descartado para que re-fetches no lo traigan de vuelta
+    dismissedRef.current.add(id_pedido);
+    setPedidos(prev => prev.filter(p => p.id_pedido !== id_pedido));
     try {
       await meseroService.entregar(id_pedido);
+      toast.success('Mesa atendida');
     } catch (_) {
-      // Si el backend rechaza (pedido no en LISTO), igual lo retiramos visualmente
+      // El backend lo rechazó — revertir
+      dismissedRef.current.delete(id_pedido);
+      await cargarDatos();
+      toast.error('No se pudo marcar como atendida');
     }
-    setPedidos(prev => prev.filter(p => p.id_pedido !== id_pedido));
-    toast.success('Mesa atendida');
   }
 
   // Polling de respaldo cada 30 s
@@ -112,9 +129,12 @@ export default function PedidosMeseroPage() {
       >
         <Card.Body className="d-flex flex-column">
           <div className="d-flex justify-content-between align-items-center mb-2">
-            <h5 className={`card-title mb-0 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
-              {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-            </h5>
+            <div>
+              <h5 className={`card-title mb-0 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
+                {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+              </h5>
+              <small className="text-muted">Pedido #{pedido.num_pedido}</small>
+            </div>
             {pedido.estado_pedido === 'LISTO'
               ? <span className="tag-listo"><BsCheckLg className="me-1" /> Listo en cocina</span>
               : <span className="tag-pendiente">En preparación</span>
