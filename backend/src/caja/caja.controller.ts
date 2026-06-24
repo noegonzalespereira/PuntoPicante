@@ -27,14 +27,11 @@ export class CajaController {
     return this.service.abrir(req.user.userId, req.user.rol, dto);
   }
 
-  /** Devuelve la caja ABIERTA del usuario (si existe) */
+  /** Devuelve la caja ABIERTA actual (cualquier usuario la ve) */
   @Get('abierta')
   @Roles('CAJERO', 'GERENTE', 'COCINA', 'MESERO')
-  cajaAbierta(@Req() req: any) {
-    if (req.user.rol === 'COCINA' || req.user.rol === 'MESERO') {
-      return this.service.cajaAbiertaActual();
-    }
-    return this.service.cajaAbiertaDe(req.user.userId);
+  cajaAbierta() {
+    return this.service.cajaAbiertaActual();
   }
 
   /** Cierra la caja indicada */
@@ -61,18 +58,19 @@ export class CajaController {
  * Ejemplo: /api/cajas/historial?cajero=3&desde=2025-10-01&hasta=2025-10-14
  */
 @Get('historial')
-@Roles('GERENTE')
+@Roles('GERENTE', 'CAJERO')
 async historial(
   @Req() req: any,
   @Query('cajero') cajero?: string,
   @Query('desde') desde?: string,
   @Query('hasta') hasta?: string,
 ) {
-  return this.service.historial({
-    cajeroId: cajero ? Number(cajero) : undefined,
-    desde,
-    hasta,
-  });
+  // CAJERO solo ve sus propias cajas; GERENTE puede ver todas o filtrar por cajero
+  const cajeroId = req.user.rol === 'CAJERO'
+    ? req.user.userId
+    : cajero ? Number(cajero) : undefined;
+
+  return this.service.historial({ cajeroId, desde, hasta });
 }
 
 }
