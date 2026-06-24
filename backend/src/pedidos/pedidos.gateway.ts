@@ -12,21 +12,21 @@ import { Server } from 'socket.io';
 })
 export class PedidosGateway {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   emitNuevoPedido(pedido: any) {
-    this.server.emit('pedido:nuevo', pedido);
+    this.server?.emit('pedido:nuevo', pedido);
   }
 
   emitPedidoActualizado(pedido: any) {
-    this.server.emit('pedido:actualizado', pedido);
+    this.server?.emit('pedido:actualizado', pedido);
   }
 
   emitItemListo(data: { id_pedido: number; id_detalle: number }) {
-    this.server.emit('item:listo', data);
+    this.server?.emit('item:listo', data);
   }
 
   emitPedidoEntregado(id_pedido: number) {
-    this.server.emit('pedido:entregado', { id_pedido });
+    this.server?.emit('pedido:entregado', { id_pedido });
   }
 }
