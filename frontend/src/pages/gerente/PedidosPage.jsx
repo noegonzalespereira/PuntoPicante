@@ -1189,6 +1189,22 @@ export default function PedidosPage() {
                   <option value="OFICINA">Oficina</option>
                 </Form.Select>
               </Col>
+              <Col xs="auto" className="d-flex align-items-end">
+                {(filtros.tipo_pedido || filtros.ambiente) && (
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => {
+                      const nf = { tipo_pedido: '', ambiente: '' };
+                      setFiltros(nf);
+                      setCurrentPage(1);
+                      loadData(1, nf);
+                    }}
+                  >
+                    <i className="bi bi-x-circle me-1" />Restablecer
+                  </Button>
+                )}
+              </Col>
               <Col xs="auto" className="ms-auto d-flex align-items-end">
                 <div className="text-muted" style={{ fontSize: '0.85rem' }}>
                   {totalPedidos} resultado{totalPedidos !== 1 ? 's' : ''}

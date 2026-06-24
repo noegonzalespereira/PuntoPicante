@@ -243,14 +243,14 @@ const CocinaPage = () => {
       <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
         <Card className="shadow-sm border-0 p-3 card-pedido-individual card-pendiente h-100">
           <Card.Body className="d-flex flex-column">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <div>
-                <h5 className="card-title text-marron mb-0 d-flex align-items-center gap-2">
-                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-                  <Badge bg="dark" style={{ fontSize: '0.7rem', fontWeight: 600 }}>#{pedido.num_pedido}</Badge>
-                </h5>
+            <div className="mb-2">
+              <h5 className="card-title text-marron mb-0">
+                {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+              </h5>
+              <div className="fw-semibold text-muted" style={{ fontSize: '0.82rem' }}>
+                Pedido #{pedido.num_pedido}
               </div>
-              <span className="tag-pendiente">
+              <span className="tag-pendiente mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
                 <BsEye className="me-1" /> Pendiente
               </span>
             </div>
@@ -292,14 +292,14 @@ const CocinaPage = () => {
         <Col xs={12} sm={6} md={4} key={pedido.id_pedido} className="mb-4 d-flex align-items-stretch">
           <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
             <Card.Body className="d-flex flex-column">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <div>
-                  <h5 className="card-title text-success mb-0 d-flex align-items-center gap-2">
-                    {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-                    <Badge bg="dark" style={{ fontSize: '0.7rem', fontWeight: 600 }}>#{pedido.num_pedido}</Badge>
-                  </h5>
+              <div className="mb-2">
+                <h5 className="card-title text-success mb-0">
+                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+                </h5>
+                <div className="fw-semibold text-muted" style={{ fontSize: '0.82rem' }}>
+                  Pedido #{pedido.num_pedido}
                 </div>
-                <span className="tag-listo">
+                <span className="tag-listo mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
                   <BsCheckLg className="me-1" /> Listo
                 </span>
               </div>

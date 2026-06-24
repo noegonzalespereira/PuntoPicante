@@ -128,14 +128,16 @@ export default function PedidosMeseroPage() {
         }`}
       >
         <Card.Body className="d-flex flex-column">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <h5 className={`card-title mb-0 d-flex align-items-center gap-2 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
+          <div className="mb-2">
+            <h5 className={`card-title mb-0 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
               {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-              <Badge bg="dark" style={{ fontSize: '0.7rem', fontWeight: 600 }}>#{pedido.num_pedido}</Badge>
             </h5>
+            <div className="fw-semibold text-muted" style={{ fontSize: '0.82rem' }}>
+              Pedido #{pedido.num_pedido}
+            </div>
             {pedido.estado_pedido === 'LISTO'
-              ? <span className="tag-listo"><BsCheckLg className="me-1" /> Listo en cocina</span>
-              : <span className="tag-pendiente">En preparación</span>
+              ? <span className="tag-listo mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}><BsCheckLg className="me-1" /> Listo en cocina</span>
+              : <span className="tag-pendiente mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>En preparación</span>
             }
           </div>
 
