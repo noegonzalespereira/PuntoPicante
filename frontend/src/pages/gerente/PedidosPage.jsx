@@ -82,7 +82,7 @@ export default function PedidosPage() {
   });
 
   const esMesaRequerida = (tipo) => tipo === "MESA" || tipo === "MIXTO";
-  const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 8;
+  const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 9;
 
   async function cargarStockDelDia() {
     try {
@@ -908,7 +908,7 @@ export default function PedidosPage() {
                       }
                     >
                       <option value="">Seleccionar mesa...</option>
-                      {[1,2,3,4,5,6,7,8].map((n) => (
+                      {[1,2,3,4,5,6,7,8,9].map((n) => (
                         <option key={n} value={n}>Mesa {n}</option>
                       ))}
                     </Form.Select>
@@ -1446,7 +1446,7 @@ export default function PedidosPage() {
                           }
                         >
                           <option value="">-</option>
-                          {[1,2,3,4,5,6,7,8].map((n) => (
+                          {[1,2,3,4,5,6,7,8,9].map((n) => (
                             <option key={n} value={n}>Mesa {n}</option>
                           ))}
                         </Form.Select>

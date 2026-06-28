@@ -149,26 +149,34 @@ export default function PedidosMeseroPage() {
           <hr className="my-2" />
 
           <div className="pedido-items-list flex-grow-1">
-            {(pedido.items ?? []).map((item, idx) => (
-              <div key={item.id_detalle_pedido}>
-                <div className="d-flex justify-content-between align-items-center py-1">
-                  <div>
-                    <strong>{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
-                    <Badge
-                      bg={item.producto?.tipo === 'PLATO' ? 'info' : item.producto?.tipo === 'BEBIDA' ? 'primary' : 'warning'}
-                      text={item.producto?.tipo === 'EXTRA' ? 'dark' : undefined}
-                      className="ms-2"
-                      style={{ fontSize: '0.65rem' }}
-                    >
-                      {item.producto?.tipo}
-                    </Badge>
-                    {item.notas && <div><small className="text-danger">Notas: {item.notas}</small></div>}
+            {(() => {
+              // Cuando el pedido está PENDIENTE (cocina preparando ítems nuevos),
+              // solo mostramos los ítems PENDIENTE para no mostrar los que ya
+              // se entregaron en un ciclo anterior (quedan marcados LISTO).
+              const itemsVisibles = pedido.estado_pedido === 'PENDIENTE'
+                ? (pedido.items ?? []).filter(it => it.estado_item === 'PENDIENTE')
+                : (pedido.items ?? []);
+              return itemsVisibles.map((item, idx) => (
+                <div key={item.id_detalle_pedido}>
+                  <div className="d-flex justify-content-between align-items-center py-1">
+                    <div>
+                      <strong>{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
+                      <Badge
+                        bg={item.producto?.tipo === 'PLATO' ? 'info' : item.producto?.tipo === 'BEBIDA' ? 'primary' : 'warning'}
+                        text={item.producto?.tipo === 'EXTRA' ? 'dark' : undefined}
+                        className="ms-2"
+                        style={{ fontSize: '0.65rem' }}
+                      >
+                        {item.producto?.tipo}
+                      </Badge>
+                      {item.notas && <div><small className="text-danger">Notas: {item.notas}</small></div>}
+                    </div>
+                    <span className="fw-bold text-muted">{item.cantidad}x</span>
                   </div>
-                  <span className="fw-bold text-muted">{item.cantidad}x</span>
+                  {idx < itemsVisibles.length - 1 && <hr className="my-1 dashed-divider" />}
                 </div>
-                {idx < (pedido.items?.length ?? 1) - 1 && <hr className="my-1 dashed-divider" />}
-              </div>
-            ))}
+              ));
+            })()}
           </div>
 
           <Button
