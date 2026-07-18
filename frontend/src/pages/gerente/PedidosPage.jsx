@@ -1583,7 +1583,7 @@ export default function PedidosPage() {
               </Badge>
             </Col>
           </Row>
-          {modalVer.pedido.ambiente === "OFICINA" && (
+          {(modalVer.pedido.ambiente === "OFICINA" || modalVer.pedido.tipo_pedido === "LLEVAR") && (
             <Row className="mb-3">
               <Col md={8}><strong>Cliente:</strong> {modalVer.pedido.nombre_cliente ?? "-"}</Col>
             </Row>
