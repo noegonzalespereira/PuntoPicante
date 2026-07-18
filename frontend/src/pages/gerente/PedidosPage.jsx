@@ -230,12 +230,13 @@ export default function PedidosPage() {
     if (!validarAntesDeEnviar()) return;
 
     const esOficina = esMesaRequerida(pedidoActual.tipo_pedido) && pedidoActual.ambiente === "OFICINA";
+    const esLlevar = pedidoActual.tipo_pedido === "LLEVAR";
     const payload = {
       id_caja: cajaAbierta?.id_caja,
       tipo_pedido: pedidoActual.tipo_pedido,
       ambiente: esMesaRequerida(pedidoActual.tipo_pedido) ? pedidoActual.ambiente : undefined,
       num_mesa: esOficina ? null : esMesaRequerida(pedidoActual.tipo_pedido) ? Number(pedidoActual.num_mesa) : null,
-      nombre_cliente: esOficina ? pedidoActual.nombre_cliente.trim() : null,
+      nombre_cliente: (esOficina || esLlevar) ? (pedidoActual.nombre_cliente || "").trim() : null,
       estado_pago: pedidoActual.estado_pago,
       metodo_pago: pedidoActual.estado_pago === "PAGADO" ? pedidoActual.metodo_pago : null,
       items: pedidoActual.items.map((i) => ({
@@ -362,11 +363,20 @@ export default function PedidosPage() {
     const payloadUpdate = {};
     if (p.tipo_pedido) payloadUpdate.tipo_pedido = p.tipo_pedido;
     if (p.tipo_pedido === "MESA" || p.tipo_pedido === "MIXTO") {
-      payloadUpdate.num_mesa = p.ambiente === "OFICINA" ? null : Number(p.num_mesa ?? 1);
-      payloadUpdate.nombre_cliente = p.nombre_cliente ?? null;
+      // Añadimos el ambiente al payload para que se guarde
+      if (p.ambiente) payloadUpdate.ambiente = p.ambiente;
+
+      if (p.ambiente === 'OFICINA') {
+        payloadUpdate.num_mesa = null;
+        payloadUpdate.nombre_cliente = p.nombre_cliente ?? null;
+      } else { // PATIO
+        payloadUpdate.num_mesa = Number(p.num_mesa ?? 1);
+        payloadUpdate.nombre_cliente = null; // Los pedidos de patio no tienen nombre de cliente
+      }
+
     } else if (p.tipo_pedido === "LLEVAR") {
       payloadUpdate.num_mesa = null;
-      payloadUpdate.nombre_cliente = null;
+      payloadUpdate.nombre_cliente = p.nombre_cliente ?? null;
     }
 
     if (Object.keys(payloadUpdate).length > 0) {
@@ -915,7 +925,7 @@ export default function PedidosPage() {
                   </Form.Group>
                 )}
 
-                {esMesaRequerida(pedidoActual.tipo_pedido) && !appendContext && pedidoActual.ambiente === "OFICINA" && (
+                {((esMesaRequerida(pedidoActual.tipo_pedido) && pedidoActual.ambiente === "OFICINA") || pedidoActual.tipo_pedido === "LLEVAR") && !appendContext && (
                   <Form.Group className="mb-3">
                     <Form.Label>Nombre del Cliente</Form.Label>
                     <Form.Control
@@ -1419,20 +1429,34 @@ export default function PedidosPage() {
               </Row>
 
               {/* Ambiente / Mesa / Nombre cliente */}
-              {modalEditar.pedido.tipo_pedido !== "LLEVAR" && (
-                <Row className="mb-3">
+              <Row className="mb-3">
+                {(modalEditar.pedido.tipo_pedido === 'MESA' || modalEditar.pedido.tipo_pedido === 'MIXTO') && (
                   <Col md={4}>
                     <Form.Group>
                       <Form.Label>Ambiente</Form.Label>
-                      <Form.Control
-                        type="text"
-                        readOnly
-                        value={modalEditar.pedido.ambiente === "OFICINA" ? "Oficina" : "Patio"}
-                        className="bg-light"
-                      />
+                      <Form.Select
+                        value={modalEditar.pedido.ambiente ?? "PATIO"}
+                        onChange={(e) =>
+                          setModalEditar((prev) => ({
+                            ...prev,
+                            pedido: {
+                              ...prev.pedido,
+                              ambiente: e.target.value,
+                              // Limpiar campos dependientes al cambiar de ambiente
+                              num_mesa: e.target.value === "OFICINA" ? "" : prev.pedido.num_mesa,
+                              nombre_cliente: e.target.value === "PATIO" ? "" : prev.pedido.nombre_cliente,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="PATIO">Patio</option>
+                        <option value="OFICINA">Oficina</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
-                  {(modalEditar.pedido.ambiente ?? "PATIO") !== "OFICINA" && (
+                )}
+                {(modalEditar.pedido.tipo_pedido === 'MESA' || modalEditar.pedido.tipo_pedido === 'MIXTO') &&
+                  (modalEditar.pedido.ambiente ?? "PATIO") !== "OFICINA" && (
                     <Col md={4}>
                       <Form.Group>
                         <Form.Label>Número de Mesa</Form.Label>
@@ -1453,8 +1477,9 @@ export default function PedidosPage() {
                       </Form.Group>
                     </Col>
                   )}
-                  {modalEditar.pedido.ambiente === "OFICINA" && (
-                    <Col md={4}>
+                {(modalEditar.pedido.tipo_pedido === 'LLEVAR' ||
+                  ((modalEditar.pedido.tipo_pedido === 'MESA' || modalEditar.pedido.tipo_pedido === 'MIXTO') && modalEditar.pedido.ambiente === "OFICINA")) && (
+                    <Col md={4} >
                       <Form.Group>
                         <Form.Label>Nombre Cliente</Form.Label>
                         <Form.Control
@@ -1470,9 +1495,8 @@ export default function PedidosPage() {
                       </Form.Group>
                     </Col>
                   )}
-                </Row>
-              )}
-
+              </Row>
+              
               <div className="mb-3">
                 <div className="fw-bold text-success">
                   <i className="bi bi-cash-coin me-1"></i>
@@ -1628,4 +1652,3 @@ export default function PedidosPage() {
     </Container>
   );
 }
-
