@@ -1235,34 +1235,33 @@ export default function PedidosPage() {
                     <Table responsive hover className="align-middle table-pedidos-listado tabla-responsive-cards">
                       <thead>
                         <tr>
-                          <th>Num Pedido</th>
-                          <th>Tipo</th>
-                          <th>Mesa / Lugar</th>
+                          <th># Pedido</th>
+                          <th>Tipo / Lugar</th>
+                          <th>Mesa / Cliente</th>
                           <th>Total</th>
                           <th>Estado Pedido</th>
-                          <th>Pago</th>
-                          <th>Método</th>
+                          <th>Pago / Método</th>
                           <th>Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pagina.map((p) => (
                           <tr key={p.id_pedido}>
-                            <td data-label="Num Pedido" className="fw-bold">{p.num_pedido}</td>
-                            <td data-label="Tipo">{p.tipo_pedido}</td>
-                            <td data-label="Mesa / Lugar">
-                              {p.ambiente === "OFICINA"
-                                ? <Badge bg="primary" style={{ fontSize: "0.75rem" }}>Oficina</Badge>
-                                : p.num_mesa ?? "-"}
+                            <td data-label="# Pedido" className="fw-bold">{p.num_pedido}</td>
+                            <td data-label="Tipo / Lugar">
+                              {p.tipo_pedido} / {p.ambiente === "OFICINA" ? <Badge bg="primary">Oficina</Badge> : p.ambiente}
+                            </td>
+                            <td data-label="Mesa / Cliente">
+                              {(p.ambiente === "OFICINA" || p.tipo_pedido === "LLEVAR") ? (p.nombre_cliente || '-') : (p.num_mesa ?? '-')}
                             </td>
                             <td data-label="Total" className="fw-bold"><Money value={p.total} /></td>
                             <td data-label="Estado Pedido">
                               <EstadoBadge estado={p.estado_pedido} />
                             </td>
-                            <td data-label="Pago">
+                            <td data-label="Pago / Método">
                               <EstadoBadge estado={p.estado_pago} />
+                              {p.metodo_pago ? ` / ${p.metodo_pago}` : ''}
                             </td>
-                            <td data-label="Método">{p.metodo_pago ?? "-"}</td>
                             <td data-label="Acciones" className="text-nowrap celda-acciones">
                               {p.estado_pago === "SIN_PAGAR" && (
                                 <DropdownButton

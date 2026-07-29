@@ -33,6 +33,16 @@ const CocinaPage = () => {
   const prevPendientes = useRef(null);
   const audioCtxRef    = useRef(null); // AudioContext reutilizable
 
+  const getPedidoTitle = (pedido) => {
+    if (pedido.tipo_pedido === 'LLEVAR') {
+      return 'Para Llevar';
+    }
+    if (pedido.ambiente === 'OFICINA') {
+      return 'Oficina';
+    }
+    return `Mesa ${pedido.num_mesa ?? '-'}`;
+  };
+
   const cargarCajaYDatos = useCallback(async () => {
     try {
       setLoading(true);
@@ -244,11 +254,13 @@ const CocinaPage = () => {
         <Card className="shadow-sm border-0 p-3 card-pedido-individual card-pendiente h-100">
           <Card.Body className="d-flex flex-column">
             <div className="mb-2">
-              <h5 className="card-title text-marron mb-0">
-                {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-              </h5>
-              <div className="fw-semibold text-muted" style={{ fontSize: '0.82rem' }}>
-                Pedido #{pedido.num_pedido}
+              <div className="d-flex justify-content-between align-items-baseline">
+                <h5 className="card-title text-marron mb-0">
+                  {getPedidoTitle(pedido)}
+                </h5>
+                <span className="fw-bold fs-4 text-muted">
+                  #{pedido.num_pedido}
+                </span>
               </div>
               <span className="tag-pendiente mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
                 <BsEye className="me-1" /> Pendiente
@@ -293,11 +305,13 @@ const CocinaPage = () => {
           <Card className="shadow-sm border-0 p-3 card-pedido-individual card-listo h-100">
             <Card.Body className="d-flex flex-column">
               <div className="mb-2">
-                <h5 className="card-title text-success mb-0">
-                  {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-                </h5>
-                <div className="fw-semibold text-muted" style={{ fontSize: '0.82rem' }}>
-                  Pedido #{pedido.num_pedido}
+                <div className="d-flex justify-content-between align-items-baseline">
+                  <h5 className="card-title text-success mb-0">
+                    {getPedidoTitle(pedido)}
+                  </h5>
+                  <span className="fw-bold fs-4 text-muted">
+                    #{pedido.num_pedido}
+                  </span>
                 </div>
                 <span className="tag-listo mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
                   <BsCheckLg className="me-1" /> Listo
