@@ -266,7 +266,7 @@ const CocinaPage = () => {
                 <BsEye className="me-1" /> Pendiente
               </span>
             </div>
-            {pedido.ambiente === 'OFICINA' && (
+            {pedido.ambiente === 'OFICINA' || pedido.tipo_pedido === 'LLEVAR' && (
               <div className="mb-1">
                 <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
               </div>

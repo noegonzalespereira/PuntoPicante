@@ -1249,7 +1249,11 @@ export default function PedidosPage() {
                           <tr key={p.id_pedido}>
                             <td data-label="# Pedido" className="fw-bold">{p.num_pedido}</td>
                             <td data-label="Tipo / Lugar">
-                              {p.tipo_pedido} / {p.ambiente === "OFICINA" ? <Badge bg="primary">Oficina</Badge> : p.ambiente}
+                              {p.tipo_pedido} / {p.tipo_pedido === 'LLEVAR'
+                                ? '-'
+                                : p.ambiente === "OFICINA"
+                                  ? <Badge bg="primary">Oficina</Badge>
+                                  : p.ambiente}
                             </td>
                             <td data-label="Mesa / Cliente">
                               {(p.ambiente === "OFICINA" || p.tipo_pedido === "LLEVAR") ? (p.nombre_cliente || '-') : (p.num_mesa ?? '-')}
