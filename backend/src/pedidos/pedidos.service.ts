@@ -4,7 +4,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository, Between, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
 import { Caja, EstadoCaja } from '../caja/caja.entity';
-import { Producto } from '../productos/producto.entity';
+import { Producto, TipoProducto } from '../productos/producto.entity';
 import { DestinoItem, DetallePedido,EstadoItem } from './detalle-pedido.entity';
 import { Pedido, EstadoPago, EstadoPedido, MetodoPago, TipoPedido } from './pedido.entity';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
@@ -364,11 +364,16 @@ export class PedidosService {
     if (!items?.length) throw new BadRequestException('Debes enviar al menos un ítem');
     const p = await this.pedidos.findOne({ where: { id_pedido } });
     if (!p) throw new NotFoundException('Pedido no existe');
+    const updatedAtOriginal = p.updated_at; // Guardar timestamp original
 
     await this.reservarStock(items.map(i => ({ id_producto: i.id_producto, cantidad: i.cantidad })), p.created_at);
 
     const ids = [...new Set(items.map(i => i.id_producto))];
     const precioPorId = await this.preciosPorId(ids);
+
+    // Determinar si se está añadiendo un plato, para la lógica de prioridad en cocina.
+    const productosInfo = await this.productos.find({ where: { id_producto: In(ids) } });
+    const seAgregoPlato = productosInfo.some(prod => prod.tipo === TipoProducto.PLATO);
 
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
@@ -402,6 +407,17 @@ export class PedidosService {
       const { tipo_final, convertidoAMixto } = await this.validarTipo_Y_Mesa(id_pedido, qr.manager);
 
       const total = await this.recalcularTotal(id_pedido, qr.manager);
+
+      if (!seAgregoPlato) {
+        // Si NO se añadió un plato (solo bebidas/extras), revertimos el `updated_at`
+        // para que no se marque como prioritario en cocina innecesariamente.
+        await qr.manager.createQueryBuilder()
+          .update(Pedido)
+          .set({ updated_at: updatedAtOriginal })
+          .where("id_pedido = :id_pedido", { id_pedido })
+          .execute();
+      }
+
       await qr.commitTransaction();
       return { ok: true, total, tipo_pedido: tipo_final, convertidoAMixto };
     } catch (e) {

@@ -282,11 +282,11 @@ const CocinaPage = () => {
                   #{pedido.num_pedido}
                 </span>
               </div>
-              <span className="tag-pendiente mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
+              {/* <span className="tag-pendiente mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
                 <BsEye className="me-1" /> Pendiente
-              </span>
+              </span> */}
               {isPriority(pedido) && (
-                <Badge bg="danger" className="ms-2 priority-badge">AÑADIDO</Badge>
+                <Badge bg="danger" className="ms-2 priority-badge">SE AÑADIO PLATOS</Badge>
               )}
             </div>
             {(pedido.ambiente === 'OFICINA' || pedido.tipo_pedido === 'LLEVAR') && (
