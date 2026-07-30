@@ -395,10 +395,10 @@ export class PedidosService {
         });
       }
 
-      // p.estado_pedido = EstadoPedido.PENDIENTE;
-      // await qr.manager.save(p);
-      // const { tipo_final, convertidoAMixto } = await this.validarTipo_Y_Mesa(id_pedido, qr.manager);
-      await this.recalcularEstadoPedido(id_pedido,qr.manager);
+      // Forzamos el estado a PENDIENTE porque se están añadiendo nuevos items.
+      // Esto asegura que un pedido LISTO o ENTREGADO vuelva a la cola de cocina.
+      p.estado_pedido = EstadoPedido.PENDIENTE;
+      await qr.manager.save(p);
       const { tipo_final, convertidoAMixto } = await this.validarTipo_Y_Mesa(id_pedido, qr.manager);
 
       const total = await this.recalcularTotal(id_pedido, qr.manager);
@@ -684,7 +684,15 @@ async resumenCocinaPorCaja(id_caja?: number) {
         
       }
 
-      await mgr.update(Pedido,{id_pedido},{estado_pedido:nuevoEstado})
+      // Usamos queryBuilder.update para cambiar solo el estado sin afectar updated_at.
+      // Esto evita que el pedido se marque como "prioritario" solo porque un ítem se marcó como listo.
+      await mgr.createQueryBuilder()
+        .update(Pedido)
+        .set({ estado_pedido: nuevoEstado })
+        .where("id_pedido = :id_pedido", { id_pedido })
+        .execute();
+
+      // await mgr.update(Pedido,{id_pedido},{estado_pedido:nuevoEstado})
       return nuevoEstado;
   }
 

@@ -43,6 +43,18 @@ const CocinaPage = () => {
     return `Mesa ${pedido.num_mesa ?? '-'}`;
   };
 
+  /**
+   * Determina si un pedido es prioritario (ítems añadidos después de un tiempo).
+   * Compara la fecha de creación con la de actualización.
+   * @param {object} pedido El objeto del pedido.
+   * @returns {boolean}
+   */
+  const isPriority = (pedido) => {
+    // Un pedido es prioritario si fue modificado (ítems añadidos) después de su creación.
+    // La fecha de creación y actualización son strings, pero una comparación simple es suficiente.
+    return pedido.updated_at !== pedido.created_at;
+  };
+
   const cargarCajaYDatos = useCallback(async () => {
     try {
       setLoading(true);
@@ -239,7 +251,15 @@ const CocinaPage = () => {
       (p.items ?? []).some(
         it => it.producto?.tipo === 'PLATO' && it.estado_item === 'PENDIENTE'
       )
+    ).sort((a, b) => {
+      // Orden de prioridad:
+      // 1. Los pedidos con items añadidos van primero.
+      // 2. Luego, se ordenan por fecha de actualización (los más antiguos primero).
+      return isPriority(b) - isPriority(a) || new Date(a.updated_at) - new Date(b.updated_at);
+
+    }
     );
+  
 
     if (!pendientes.length) {
       return (
@@ -265,10 +285,13 @@ const CocinaPage = () => {
               <span className="tag-pendiente mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}>
                 <BsEye className="me-1" /> Pendiente
               </span>
+              {isPriority(pedido) && (
+                <Badge bg="danger" className="ms-2 priority-badge">AÑADIDO</Badge>
+              )}
             </div>
-            {pedido.ambiente === 'OFICINA' || pedido.tipo_pedido === 'LLEVAR' && (
+            {(pedido.ambiente === 'OFICINA' || pedido.tipo_pedido === 'LLEVAR') && (
               <div className="mb-1">
-                <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
+                <span className="fw-semibold text-primary">Cliente: {pedido.nombre_cliente || '—'}</span>
               </div>
             )}
 
@@ -317,9 +340,9 @@ const CocinaPage = () => {
                   <BsCheckLg className="me-1" /> Listo
                 </span>
               </div>
-              {pedido.ambiente === 'OFICINA' && (
+              {(pedido.ambiente === 'OFICINA' || pedido.tipo_pedido === 'LLEVAR') && (
                 <div className="mb-1">
-                  <span className="fw-semibold text-primary">{pedido.nombre_cliente || '—'}</span>
+                  <span className="fw-semibold text-primary">Cliente: {pedido.nombre_cliente || '—'}</span>
                 </div>
               )}
 

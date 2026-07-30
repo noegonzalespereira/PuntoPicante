@@ -76,19 +76,28 @@ export default function PedidosMeseroPage() {
     }
   }, []);
 
-  async function marcarAtendido(id_pedido) {
+  async function marcarComidaEntregada(id_pedido) {
     // Marcar inmediatamente como descartado para que re-fetches no lo traigan de vuelta
     dismissedRef.current.add(id_pedido);
     setPedidos(prev => prev.filter(p => p.id_pedido !== id_pedido));
     try {
+      // Llamar al backend para cambiar el estado a ENTREGADO
       await meseroService.entregar(id_pedido);
-      toast.success('Mesa atendida');
+      toast.success('Pedido entregado y finalizado.');
     } catch (_) {
       // El backend lo rechazó — revertir
       dismissedRef.current.delete(id_pedido);
       await cargarDatos();
-      toast.error('No se pudo marcar como atendida');
+      toast.error('No se pudo marcar el pedido como entregado.');
     }
+  }
+
+  function marcarBebidasEntregadas(id_pedido) {
+    // Acción local para que el mesero limpie su lista de tareas de bebidas/cubiertos.
+    // No afecta el estado del pedido en la base de datos.
+    dismissedRef.current.add(id_pedido);
+    setPedidos(prev => prev.filter(p => p.id_pedido !== id_pedido));
+    toast.info('Mesa marcada como atendida (bebidas/cubiertos). El pedido sigue en cocina.');
   }
 
   // Polling de respaldo cada 30 s
@@ -129,11 +138,13 @@ export default function PedidosMeseroPage() {
       >
         <Card.Body className="d-flex flex-column">
           <div className="mb-2">
-            <h5 className={`card-title mb-0 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
-              {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
-            </h5>
-            <div className="fw-semibold text-muted" style={{ fontSize: '0.82rem' }}>
-              Pedido #{pedido.num_pedido}
+            <div className="d-flex justify-content-between align-items-baseline">
+              <h5 className={`card-title mb-0 ${pedido.estado_pedido === 'LISTO' ? 'text-success' : 'text-marron'}`}>
+                {pedido.ambiente === 'OFICINA' ? 'Oficina' : `Mesa ${pedido.num_mesa}`}
+              </h5>
+              <span className="fw-bold fs-4 text-muted">
+                #{pedido.num_pedido}
+              </span>
             </div>
             {pedido.estado_pedido === 'LISTO'
               ? <span className="tag-listo mt-1 d-inline-flex align-items-center" style={{ fontSize: '0.72rem', padding: '2px 7px' }}><BsCheckLg className="me-1" /> Listo en cocina</span>
@@ -182,7 +193,11 @@ export default function PedidosMeseroPage() {
           <Button
             variant={pedido.estado_pedido === 'LISTO' ? 'success' : 'outline-secondary'}
             className="mt-3 w-100 fw-semibold"
-            onClick={() => marcarAtendido(pedido.id_pedido)}
+            onClick={() =>
+              pedido.estado_pedido === 'LISTO'
+                ? marcarComidaEntregada(pedido.id_pedido)
+                : marcarBebidasEntregadas(pedido.id_pedido)
+            }
           >
             <BsCheck2Circle className="me-2" />
             {pedido.estado_pedido === 'LISTO' ? 'Entregar y marcar atendido' : 'Marcar mesa atendida'}
