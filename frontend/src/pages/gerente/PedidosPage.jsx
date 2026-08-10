@@ -67,9 +67,6 @@ export default function PedidosPage() {
   const [appendContext, setAppendContext] = useState(null);
   const [saving, setSaving] = useState(false);
   const [modalEditar, setModalEditar] = useState({ open: false, loading: false, pedido: null });
-  const [modalVer, setModalVer] = useState({ open: false, loading: false, pedido: null });
-
-  const getStockRestante = (id_producto) => Number(stockMap?.get(id_producto) ?? 0);
 
   const [pedidoActual, setPedidoActual] = useState({
     tipo_pedido: "MESA",
@@ -80,6 +77,10 @@ export default function PedidosPage() {
     metodo_pago: null,
     items: [],
   });
+  const [modalVer, setModalVer] = useState({ open: false, loading: false, pedido: null });
+
+  const getStockRestante = (id_producto) =>
+    Number(stockInfoMap?.get(id_producto)?.stock ?? 0);
 
   const esMesaRequerida = (tipo) => tipo === "MESA" || tipo === "MIXTO";
   const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 8;
@@ -128,10 +129,10 @@ export default function PedidosPage() {
 
   const categorias = ["Todos", "PLATO", "BEBIDA", "EXTRA"];
 
-  const stockMap = useMemo(() => {
+  const stockInfoMap = useMemo(() => {
     const map = new Map();
     for (const x of [...stockDisponible.platos, ...stockDisponible.bebidas, ...stockDisponible.extras]) {
-      map.set(x.id_producto, x.stock);
+      map.set(x.id_producto, { stock: x.stock, vendido: x.vendido });
     }
     return map;
   }, [stockDisponible]);
@@ -139,9 +140,16 @@ export default function PedidosPage() {
   const productosFiltrados = useMemo(() => productos.filter((p) => {
     const cat = categoriaActiva === "Todos" || p.tipo === categoriaActiva;
     const search = p.nombre.toLowerCase().includes(searchProducto.toLowerCase());
-    const tieneStock = (stockMap.get(p.id_producto) ?? 0) > 0;
+
+    // Para platos, deben tener stock. Bebidas y extras siempre se muestran.
+    let tieneStock = true;
+    if (p.tipo === 'PLATO') {
+      const stockInfo = stockInfoMap.get(p.id_producto);
+      tieneStock = (stockInfo?.stock ?? 0) > 0;
+    }
+
     return cat && search && tieneStock;
-  }), [productos, categoriaActiva, searchProducto, stockMap]);
+  }), [productos, categoriaActiva, searchProducto, stockInfoMap]);
 
 
   function agregarProducto(producto) {
@@ -149,14 +157,18 @@ export default function PedidosPage() {
       toast.warning("Debe abrir una caja primero");
       return false;
     }
-    const restante = getStockRestante(producto.id_producto);
-    const enCarrito = pedidoActual.items
-      .filter((i) => i.id_producto === producto.id_producto)
-      .reduce((sum, i) => sum + i.cantidad, 0);
 
-    if (restante <= 0 || enCarrito + 1 > restante) {
-      toast.warning(`Sin stock suficiente — solo hay ${restante} unidad(es) de ${producto.nombre}.`);
-      return false;
+    // Solo validar stock para platos
+    if (producto.tipo === 'PLATO') {
+      const restante = getStockRestante(producto.id_producto);
+      const enCarrito = pedidoActual.items
+        .filter((i) => i.id_producto === producto.id_producto)
+        .reduce((sum, i) => sum + i.cantidad, 0);
+
+      if (restante <= 0 || enCarrito + 1 > restante) {
+        toast.warning(`Sin stock suficiente — solo hay ${restante} unidad(es) de ${producto.nombre}.`);
+        return false;
+      }
     }
     const existe = pedidoActual.items.find((i) => i.id_producto === producto.id_producto);
     const destinoPorDefecto = pedidoActual.tipo_pedido === "LLEVAR" ? "LLEVAR" : "MESA";
@@ -679,8 +691,8 @@ export default function PedidosPage() {
             const originalCantidad = Number(originalItem?.cantidad ?? 0);
             const nuevaCantidad = Number(item.cantidad) + 1;
             const delta = nuevaCantidad - originalCantidad;
-            const stockDisp = stockMap.get(item.id_producto) ?? 0;
-            if (delta > 0 && stockDisp < delta) {
+            const stockDisp = getStockRestante(item.id_producto);
+            if (item.producto?.tipo === 'PLATO' && delta > 0 && stockDisp < delta) {
               toast.warning(
                 `Sin stock suficiente para "${item.producto?.nombre ?? item.nombre}" — solo quedan ${stockDisp} unidad(es) disponibles.`
               );
@@ -823,22 +835,24 @@ export default function PedidosPage() {
                           <Card.Text className="text-success fw-bold mb-1 product-price">
                             {Number(p.precio).toFixed(2)} Bs
                           </Card.Text>
-                          {(() => {
-                            const restante = stockMap.get(p.id_producto) ?? 0;
-                            const texto =
-                              restante <= 0
-                                ? "Sin stock"
-                                : restante <= 5
-                                ? `Poco stock (${restante})`
-                                : `Disponible: ${restante}`;
-                            const color =
-                              restante <= 0
-                                ? "text-danger"
-                                : restante <= 5
-                                ? "text-warning"
-                                : "text-success";
-                            return <small className={color}>{texto}</small>;
-                          })()}
+                          {p.tipo === 'PLATO' ? (
+                            (() => {
+                              const restante = getStockRestante(p.id_producto);
+                              const texto =
+                                restante <= 0
+                                  ? "Sin stock"
+                                  : restante <= 5
+                                  ? `Poco stock (${restante})`
+                                  : `Disponible: ${restante}`;
+                              const color =
+                                restante <= 0 ? "text-danger" : restante <= 5 ? "text-warning" : "text-success";
+                              return <small className={color}>{texto}</small>;
+                            })()
+                          ) : (
+                            <small className="text-muted">
+                              Vendido hoy: {stockInfoMap.get(p.id_producto)?.vendido ?? 0}
+                            </small>
+                          )}
                         </Card.Body>
                       </Card>
                     </Col>

@@ -206,33 +206,33 @@ const DashboardGerente = () => {
     const bebidas = stats.stockDetalle?.bebidas || [];
     const extras  = stats.stockDetalle?.extras  || [];
 
-    const StockSeccion = ({ items, labelCol, emptyMsg }) => (
+    const StockSeccion = ({ items, labelCol, emptyMsg, isPlate = false }) => (
       <Table responsive hover size="sm" className="tabla-stock-dashboard tabla-responsive-cards mb-0">
         <thead>
           <tr>
             <th>{labelCol}</th>
-            <th className="text-center">Stock Día</th>
+            {isPlate && <th className="text-center">Stock Día</th>}
             <th className="text-center">Vendidos</th>
-            <th className="text-center">Disponible</th>
+            {isPlate && <th className="text-center">Disponible</th>}
           </tr>
         </thead>
         <tbody>
           {items.length > 0 ? (
             items.map((p) => {
-              const stockDia  = p.stock_inicial ?? ((p.stock ?? 0) + (p.vendido ?? 0) + (p.merma ?? 0));
+              const stockDia  = p.stock_inicial ?? 0;
               const disponible = p.stock ?? 0;
               return (
                 <tr key={p.id_producto}>
-                  <td className="fw-bold">{p.nombre}</td>
-                  <td className="text-center text-marron">{stockDia}</td>
+                  <td data-label={labelCol} className="fw-bold">{p.nombre}</td>
+                  {isPlate && <td data-label="Stock Día" className="text-center text-marron">{stockDia}</td>}
                   <td className="text-center text-primary">{p.vendido ?? 0}</td>
-                  <td className="text-center fw-bold">{disponible}</td>
+                  {isPlate && <td data-label="Disponible" className="text-center fw-bold">{disponible}</td>}
                 </tr>
               );
             })
           ) : (
             <tr>
-              <td colSpan="4" className="text-center text-muted">{emptyMsg}</td>
+              <td colSpan={isPlate ? 4 : 2} className="text-center text-muted">{emptyMsg}</td>
             </tr>
           )}
         </tbody>
@@ -244,14 +244,14 @@ const DashboardGerente = () => {
         <p className="text-muted mb-1 fw-bold">
           Platos vendidos: <span className="text-marron">{stats.platosVendidos} uds.</span>
         </p>
-        <StockSeccion items={platos} labelCol="Plato" emptyMsg={`Sin apertura de platos para ${formatFechaVisual(stats.fechaRef)}.`} />
+        <StockSeccion items={platos} labelCol="Plato" emptyMsg={`Sin apertura de platos para ${formatFechaVisual(stats.fechaRef)}.`} isPlate={true} />
 
         {bebidas.length > 0 && (
           <>
             <p className="text-muted mb-1 fw-bold mt-3">
               Bebidas vendidas: <span className="text-marron">{stats.bebidasVendidas} uds.</span>
             </p>
-            <StockSeccion items={bebidas} labelCol="Bebida" emptyMsg="" />
+            <StockSeccion items={bebidas} labelCol="Bebida" emptyMsg="No se vendieron bebidas." isPlate={false} />
           </>
         )}
 
@@ -260,7 +260,7 @@ const DashboardGerente = () => {
             <p className="text-muted mb-1 fw-bold mt-3">
               Extras vendidos: <span className="text-marron">{stats.extrasVendidos} uds.</span>
             </p>
-            <StockSeccion items={extras} labelCol="Extra" emptyMsg="" />
+            <StockSeccion items={extras} labelCol="Extra" emptyMsg="No se vendieron extras." isPlate={false} />
           </>
         )}
       </>

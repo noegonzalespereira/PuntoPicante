@@ -21,10 +21,15 @@ export class InventarioService {
   ) {}
 
   private ymd(date = new Date()) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    const d = date ? new Date(date) : new Date();
+
+    // Forzar zona horaria de Bolivia (UTC-4) para consistencia,
+    // sin importar la configuración del servidor.
+    const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    const boliviaOffset = -4 * 60 * 60000;
+    const local = new Date(utc + boliviaOffset);
+
+    return local.toISOString().slice(0, 10);
   }
 
   // ====================================================================
@@ -97,12 +102,11 @@ export class InventarioService {
 
   /** Busca la fila de inventario de un producto (PLATO: por fecha · BEBIDA/EXTRA: global). */
   private async filaDeProducto(prod: Producto, id_producto: number, fecha?: string) {
-    if (prod.tipo === TipoProducto.PLATO) {
-      const f = fecha ?? this.ymd();
-      return this.invRepo.findOne({ where: { producto: { id_producto }, fecha: f } });
-    }
-    // BEBIDA y EXTRA: stock global (fecha = null)
-    return this.invRepo.findOne({ where: { producto: { id_producto }, fecha: IsNull() } });
+    const f = fecha ?? this.ymd();
+    // BEBIDA, EXTRA y PLATO ahora todos usan un registro diario por fecha.
+    return this.invRepo.findOne({
+      where: { producto: { id_producto }, fecha: f },
+    });
   }
 
   // ====================================================================
@@ -114,13 +118,18 @@ export class InventarioService {
     const prod = await this.prodRepo.findOne({ where: { id_producto } });
     if (!prod) throw new NotFoundException('Producto no existe');
 
+    // Para BEBIDA y EXTRA, el stock es conceptualmente infinito para la venta.
+    if (prod.tipo === TipoProducto.BEBIDA || prod.tipo === TipoProducto.EXTRA) {
+      return 9999;
+    }
+
+    // Para PLATO, se mantiene la lógica de apertura.
     const row = await this.filaDeProducto(prod, id_producto, fecha);
     if (!row) return 0;
 
     const agg = await this.agregadoDeFila(row.id_inventario);
     return this.calcularDesglose(row.cantidad_inicial, agg).disponible;
   }
-
   // ====================================================================
   //  MOVIMIENTOS DE VENTA (los llama el módulo de pedidos)
   //  Ya NO mutan cantidad_inicial: solo registran un movimiento en el kardex.
@@ -133,19 +142,23 @@ export class InventarioService {
     const prod = await this.prodRepo.findOne({ where: { id_producto } });
     if (!prod) throw new NotFoundException('Producto no existe');
 
-    const row = await this.filaDeProducto(prod, id_producto, fecha);
-    if (!row) {
-      throw new BadRequestException(
-        prod.tipo === TipoProducto.PLATO
-          ? `No hay apertura para el plato ${id_producto} en ${fecha ?? this.ymd()}`
-          : `No hay stock cargado para la bebida ${id_producto}`,
-      );
-    }
+    const f = fecha ?? this.ymd();
+    let row = await this.filaDeProducto(prod, id_producto, f);
 
-    const agg = await this.agregadoDeFila(row.id_inventario);
-    const disponible = this.calcularDesglose(row.cantidad_inicial, agg).disponible;
-    if (disponible < cantidad) {
-      throw new BadRequestException(`Stock insuficiente (disponible ${disponible})`);
+    if (prod.tipo === TipoProducto.PLATO) {
+      if (!row) {
+        throw new BadRequestException(`No hay apertura para el plato "${prod.nombre}" en ${f}`);
+      }
+      const agg = await this.agregadoDeFila(row.id_inventario);
+      const disponible = this.calcularDesglose(row.cantidad_inicial, agg).disponible;
+      if (disponible < cantidad) {
+        throw new BadRequestException(`Stock insuficiente para "${prod.nombre}" (disponible ${disponible})`);
+      }
+    } else { // BEBIDA o EXTRA
+      if (!row) {
+        const modo = prod.tipo === TipoProducto.EXTRA ? ModoInventario.EXTRA : ModoInventario.BEBIDA;
+        row = await this.invRepo.save(this.invRepo.create({ producto: { id_producto } as any, modo, fecha: f, cantidad_inicial: 0 }));
+      }
     }
 
     await this.movRepo.save(
@@ -165,21 +178,14 @@ export class InventarioService {
     const prod = await this.prodRepo.findOne({ where: { id_producto } });
     if (!prod) throw new NotFoundException('Producto no existe');
 
-    let row = await this.filaDeProducto(prod, id_producto, fecha);
+    const f = fecha ?? this.ymd();
+    let row = await this.filaDeProducto(prod, id_producto, f);
     if (!row) {
       // Caso raro: se libera sin fila previa. La creamos vacía para no perder el registro.
-      const esPlato = prod.tipo === TipoProducto.PLATO;
-      const modo = esPlato ? ModoInventario.PLATO
+      const modo = prod.tipo === TipoProducto.PLATO ? ModoInventario.PLATO
                  : prod.tipo === TipoProducto.EXTRA ? ModoInventario.EXTRA
                  : ModoInventario.BEBIDA;
-      row = await this.invRepo.save(
-        this.invRepo.create({
-          producto: { id_producto } as any,
-          modo,
-          fecha: esPlato ? (fecha ?? this.ymd()) : null,
-          cantidad_inicial: 0,
-        }),
-      );
+      row = await this.invRepo.save(this.invRepo.create({ producto: { id_producto } as any, modo, fecha: f, cantidad_inicial: 0 }));
     }
 
     await this.movRepo.save(
@@ -240,65 +246,26 @@ export class InventarioService {
     return { ok: true, items: results };
   }
 
-  /** Ingreso de stock global para BEBIDA o EXTRA. Suma al inicial y registra un INGRESO. */
-  async ingresoBebida(dto: IngresoBebidaDto) {
-    const prod = await this.prodRepo.findOne({ where: { id_producto: dto.id_producto } });
-    if (!prod) throw new NotFoundException('Producto no existe');
-    if (prod.tipo !== TipoProducto.BEBIDA && prod.tipo !== TipoProducto.EXTRA)
-      throw new BadRequestException('Solo aplica a BEBIDA o EXTRA');
-
-    const modo = prod.tipo === TipoProducto.EXTRA ? ModoInventario.EXTRA : ModoInventario.BEBIDA;
-
-    let row = await this.invRepo.findOne({
-      where: { producto: { id_producto: dto.id_producto }, fecha: IsNull() },
-    });
-    if (!row) {
-      row = this.invRepo.create({
-        producto: { id_producto: dto.id_producto } as any,
-        modo,
-        fecha: null,
-        cantidad_inicial: 0,
-      });
-    }
-
-    row.cantidad_inicial += dto.cantidad;
-    row = await this.invRepo.save(row);
-
-    await this.movRepo.save(
-      this.movRepo.create({
-        inventario: row,
-        tipo: TipoMovimiento.INGRESO,
-        cantidad: dto.cantidad,
-        motivo: dto.motivo ?? 'INGRESO',
-      }),
-    );
-
-    const agg = await this.agregadoDeFila(row.id_inventario);
-    return {
-      ok: true,
-      id_producto: dto.id_producto,
-      stock: this.calcularDesglose(row.cantidad_inicial, agg).disponible,
-    };
-  }
-
   /** Merma (PLATO por día o BEBIDA global): valida disponible y registra MERMA. */
   async merma(dto: MermaDto) {
     const prod = await this.prodRepo.findOne({ where: { id_producto: dto.id_producto } });
     if (!prod) throw new NotFoundException('Producto no existe');
 
-    const esPlato = dto.sobre === MermaSobre.PLATO;
-    if (esPlato && prod.tipo !== TipoProducto.PLATO)
-      throw new BadRequestException('El producto no es PLATO');
-    if (!esPlato && prod.tipo !== TipoProducto.BEBIDA && prod.tipo !== TipoProducto.EXTRA)
-      throw new BadRequestException('El producto no es BEBIDA ni EXTRA');
+    // A petición, las mermas solo se registran para platos.
+    if (prod.tipo !== TipoProducto.PLATO) {
+      throw new BadRequestException('El registro de mermas solo está permitido para productos de tipo PLATO.');
+    }
 
-    const fecha = esPlato ? (dto.fecha ?? this.ymd()) : undefined;
+    const fecha = dto.fecha ?? this.ymd();
     const row = await this.filaDeProducto(prod, dto.id_producto, fecha);
-    if (!row) throw new BadRequestException('No hay stock para registrar la merma');
+    if (!row) {
+      throw new BadRequestException('No hay apertura de stock para este plato en la fecha indicada. No se puede registrar la merma.');
+    }
 
+    // La validación de stock solo aplica a platos
     const agg = await this.agregadoDeFila(row.id_inventario);
     const disponible = this.calcularDesglose(row.cantidad_inicial, agg).disponible;
-    if (disponible < dto.cantidad) throw new BadRequestException(`Stock insuficiente (disponible ${disponible})`);
+    if (disponible < dto.cantidad) throw new BadRequestException(`Stock insuficiente para merma (disponible ${disponible})`);
 
     await this.movRepo.save(
       this.movRepo.create({
@@ -309,11 +276,14 @@ export class InventarioService {
       }),
     );
 
+    const finalAgg = await this.agregadoDeFila(row.id_inventario);
+    const desglose = this.calcularDesglose(row.cantidad_inicial, finalAgg);
+
     return {
       ok: true,
       id_producto: dto.id_producto,
-      fecha: row.fecha ?? 'GLOBAL',
-      stock: disponible - dto.cantidad,
+      fecha: row.fecha,
+      stock: desglose.disponible,
     };
   }
 
@@ -332,13 +302,13 @@ export class InventarioService {
     });
 
     const bebidas = await this.invRepo.find({
-      where: { fecha: IsNull(), modo: ModoInventario.BEBIDA },
+      where: { fecha, modo: ModoInventario.BEBIDA },
       relations: { producto: true },
       order: { id_inventario: 'ASC' },
     });
 
     const extras = await this.invRepo.find({
-      where: { fecha: IsNull(), modo: ModoInventario.EXTRA },
+      where: { fecha, modo: ModoInventario.EXTRA },
       relations: { producto: true },
       order: { id_inventario: 'ASC' },
     });
@@ -374,18 +344,19 @@ export class InventarioService {
   /** Historial de mermas (para la pestaña Mermas del frontend). */
   async listarMermas(): Promise<any[]> {
     const movimientos = await this.movRepo.find({
-      where: { tipo: TipoMovimiento.MERMA },
+      where: {
+        tipo: TipoMovimiento.MERMA,
+        inventario: { modo: ModoInventario.PLATO }, // Solo mermas de platos
+      },
       relations: { inventario: { producto: true } },
       order: { created_at: 'DESC' },
     });
     return movimientos.map((mov) => ({
       id_mov: mov.id_mov,
-      producto: mov.inventario.producto.nombre,
       producto_nombre: mov.inventario.producto.nombre, // el frontend lee este nombre
-      tipo: mov.inventario.modo,
       cantidad: mov.cantidad,
       motivo: mov.motivo,
-      fecha: mov.inventario.fecha ?? 'GLOBAL',
+      fecha: mov.inventario.fecha, // Siempre tendrá fecha porque es de un plato
     }));
   }
 }

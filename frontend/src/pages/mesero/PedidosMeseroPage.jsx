@@ -29,7 +29,8 @@ export default function PedidosMeseroPage() {
   const [pedidos, setPedidos]   = useState([]);
   const [loading, setLoading]   = useState(false);
   const pollingRef    = useRef(null);
-  const prevTotal     = useRef(null);
+  const prevPendientesCount = useRef(0);
+  const prevListosCount     = useRef(0);
   // IDs marcados como atendidos localmente; evita que re-fetches los traigan de vuelta
   const dismissedRef  = useRef(new Set());
 
@@ -43,7 +44,8 @@ export default function PedidosMeseroPage() {
       if (!cajaAbierta) {
         setPedidos([]);
         dismissedRef.current.clear();
-        prevTotal.current = null;
+        prevPendientesCount.current = 0;
+        prevListosCount.current = 0;
         return;
       }
 
@@ -54,20 +56,24 @@ export default function PedidosMeseroPage() {
           && p.estado_pedido !== 'ENTREGADO'
           && !dismissedRef.current.has(p.id_pedido)
       );
-      setPedidos(visibles);
 
       // Limpiar dismissed que ya no están en la lista (el backend los eliminó)
       const idsActivos = new Set(lista.map(p => p.id_pedido));
       for (const id of dismissedRef.current) {
         if (!idsActivos.has(id)) dismissedRef.current.delete(id);
       }
+      
+      const nuevosPendientes = visibles.filter(p => p.estado_pedido === 'PENDIENTE').length;
+      const nuevosListos = visibles.filter(p => p.estado_pedido === 'LISTO').length;
 
-      const total = visibles.length;
-      if (prevTotal.current !== null && total > prevTotal.current) {
+      if (nuevosPendientes > prevPendientesCount.current) {
         playBeep();
-        toast.info(`Nuevo pedido recibido (${total} en total)`, { duration: 4000 });
+        toast.info(`Nuevo pedido en preparación`);
       }
-      prevTotal.current = total;
+      
+      setPedidos(visibles);
+      prevPendientesCount.current = nuevosPendientes;
+      prevListosCount.current = nuevosListos;
     } catch (err) {
       console.error('Error mesero:', err);
       toast.error('No se pudo cargar los pedidos');
@@ -172,6 +178,19 @@ export default function PedidosMeseroPage() {
                   <div className="d-flex justify-content-between align-items-center py-1">
                     <div>
                       <strong>{item.producto?.nombre ?? `#${item.id_producto}`}</strong>
+                      {typeof item.producto?.stock_disponible === 'number' && (() => {
+                        const stock = item.producto.stock_disponible;
+                        let bg = 'secondary';
+                        if (stock === 0) bg = 'danger';
+                        else if (stock <= 5) bg = 'warning';
+                        
+                        return (
+                          <Badge bg={bg} text={bg === 'warning' ? 'dark' : undefined} className="ms-2" style={{ fontSize: '0.65rem' }}>
+                            Disp: {stock}
+                          </Badge>
+                        );
+                      })()}
+
                       <Badge
                         bg={item.producto?.tipo === 'PLATO' ? 'info' : item.producto?.tipo === 'BEBIDA' ? 'primary' : 'warning'}
                         text={item.producto?.tipo === 'EXTRA' ? 'dark' : undefined}

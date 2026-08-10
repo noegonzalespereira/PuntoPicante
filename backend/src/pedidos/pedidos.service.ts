@@ -51,16 +51,16 @@ export class PedidosService {
   }
 
   private ymd(date?: Date) {
-    const d = date ? new Date(date): new Date();
-  
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const boliviaOffset = -4 * 60 * 60000;
+    const d = date ? new Date(date) : new Date();
 
-    const local = new Date(utc+ boliviaOffset);
-    const y = local.getFullYear();
-    const m = String(local.getMonth() + 1).padStart(2, '0');
-    const day = String(local.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    // Forzar zona horaria de Bolivia (UTC-4) para consistencia,
+    // sin importar la configuración del servidor.
+    const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    const boliviaOffset = -4 * 60 * 60000;
+    const local = new Date(utc + boliviaOffset);
+
+    // '2023-10-27T14:30:00.000Z' -> '2023-10-27'
+    return local.toISOString().slice(0, 10);
   }
 
   private async recalcularTotal(id_pedido: number, mgr = this.pedidos.manager) {
@@ -116,24 +116,27 @@ export class PedidosService {
   const hoy = this.ymd(fechaBase);
   const agg = this.agregate(items); // Map<id_producto, cantidad total>
 
-  // 1) Traemos los nombres de TODOS los productos con una sola query
+  // 1) Traemos los nombres y tipos de TODOS los productos con una sola query
   const ids = Array.from(agg.keys());
   const prods = await this.productos.find({
     where: { id_producto: In(ids) },
-    select: ['id_producto', 'nombre'],
+    select: ['id_producto', 'nombre', 'tipo'],
   });
-  const nombrePorId = new Map<number, string>(
-    prods.map(p => [p.id_producto, p.nombre])
+  const prodsMap = new Map<number, { nombre: string; tipo: TipoProducto }>(
+    prods.map(p => [p.id_producto, { nombre: p.nombre, tipo: p.tipo }])
   );
 
   // 2) Validamos disponibilidad y, si falta stock, lanzamos error con el nombre
   for (const [id_producto, cant] of agg.entries()) {
-    const disponible = await this.inventario.disponibleProducto(id_producto, hoy);
-    if (disponible < cant) {
-      const nombre = nombrePorId.get(id_producto) ?? `producto ${id_producto}`;
-      throw new BadRequestException(
-        `Stock insuficiente para "${nombre}". Disponible: ${disponible}, solicitado: ${cant}`
-      );
+    const prodInfo = prodsMap.get(id_producto);
+
+    // SOLO validamos stock para PLATOS. Bebidas y extras tienen stock "infinito".
+    if (prodInfo?.tipo === TipoProducto.PLATO) {
+      const disponible = await this.inventario.disponibleProducto(id_producto, hoy);
+      if (disponible < cant) {
+        const nombre = prodInfo.nombre ?? `producto ${id_producto}`;
+        throw new BadRequestException(`Stock insuficiente para "${nombre}". Disponible: ${disponible}, solicitado: ${cant}`);
+      }
     }
   }
 
@@ -198,6 +201,15 @@ export class PedidosService {
 
     await this.reservarStock(dto.items.map(i => ({ id_producto: i.id_producto, cantidad: i.cantidad })), new Date());
 
+    // Determinar el estado inicial del pedido. Si no tiene platos, se marca como LISTO.
+    const productosConTipo = await this.productos.find({
+      where: { id_producto: In(ids) },
+      select: ['id_producto', 'tipo'],
+    });
+    const tienePlatos = productosConTipo.some(p => p.tipo === TipoProducto.PLATO);
+    const estadoPedidoInicial = tienePlatos ? EstadoPedido.PENDIENTE : EstadoPedido.LISTO;
+    const estadoItemInicial = tienePlatos ? EstadoItem.PENDIENTE : EstadoItem.LISTO;
+
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
@@ -224,7 +236,7 @@ export class PedidosService {
         nombre_cliente: dto.nombre_cliente ?? null,
         metodo_pago: dto.metodo_pago,
         estado_pago: dto.estado_pago,
-        estado_pedido: EstadoPedido.PENDIENTE,
+        estado_pedido: estadoPedidoInicial,
         total: '0.00',
       });
 
@@ -243,7 +255,7 @@ export class PedidosService {
           subtotal: subtotal.toFixed(2),
           notas: it.notas ?? null,
           destino,
-          estado_item: EstadoItem.PENDIENTE,
+          estado_item: estadoItemInicial,
         });
       }
 
@@ -349,7 +361,8 @@ export class PedidosService {
       await this.recalcularEstadoPedido(id_pedido,qr.manager);
       const total = await this.recalcularTotal(id_pedido, qr.manager);
       await qr.commitTransaction();
-      return { ok: true, total, tipo_pedido: tipoFinal.tipo_final, convertidoAMixto:tipoFinal.convertidoAMixto };
+      this.gateway.emitPedidoActualizado({ id_pedido });
+      return { ok: true, total, tipo_pedido: tipoFinal.tipo_final, convertidoAMixto: tipoFinal.convertidoAMixto };
     } catch (e) {
       await qr.rollbackTransaction();
       if (deltaPos.length) await this.liberarStock(deltaPos, p.created_at);
@@ -419,6 +432,7 @@ export class PedidosService {
       }
 
       await qr.commitTransaction();
+      this.gateway.emitPedidoActualizado({ id_pedido });
       return { ok: true, total, tipo_pedido: tipo_final, convertidoAMixto };
     } catch (e) {
       await qr.rollbackTransaction();
@@ -461,6 +475,7 @@ export class PedidosService {
     // await this.pedidos.save(p);
     const { tipo_final, convertidoAMixto } = await this.validarTipo_Y_Mesa(id_pedido);
     const total = await this.recalcularTotal(id_pedido);
+    this.gateway.emitPedidoActualizado({ id_pedido });
     return { ok: true, total, tipo_pedido: tipo_final, convertidoAMixto };
   }
 
@@ -482,6 +497,7 @@ export class PedidosService {
     await this.recalcularEstadoPedido(id_pedido);
     const { tipo_final, convertidoAMixto } = await this.validarTipo_Y_Mesa(id_pedido);
     const total = await this.recalcularTotal(id_pedido);
+    this.gateway.emitPedidoActualizado({ id_pedido });
     return { ok: true, total, tipo_pedido: tipo_final, convertidoAMixto };
   }
 
@@ -599,10 +615,35 @@ async listaParaCocinaPorCaja(opts: { id_caja?: number; estado?: EstadoPedido; de
     if (d) where.updated_at = MoreThanOrEqual(d);
   }
 
-  return this.pedidos.find({
+  const pedidos = await this.pedidos.find({
     where,
     relations: { items: { producto: true } },
     order: { updated_at: 'ASC', id_pedido: 'ASC' },
+  });
+
+  // Inyectar el stock disponible actual para cada producto en la respuesta.
+  // Esto es útil para que la UI (ej. vista de mesero) pueda mostrarlo.
+  const hoy = this.ymd();
+  const stockInfo = await this.inventario.disponible({ fecha: hoy });
+  const stockMap = new Map<number, number>();
+  stockInfo.platos.forEach(p => stockMap.set(p.id_producto, p.stock));
+  stockInfo.bebidas.forEach(p => stockMap.set(p.id_producto, p.stock));
+  stockInfo.extras.forEach(p => stockMap.set(p.id_producto, p.stock));
+
+  // Mapeamos a objetos planos para añadir la propiedad `stock_disponible` sin mutar las entidades.
+  return pedidos.map(pedido => {
+    const plainPedido = { ...pedido };
+    plainPedido.items = pedido.items.map(item => {
+      const plainItem = { ...item };
+      if (plainItem.producto) {
+        plainItem.producto = {
+          ...plainItem.producto,
+          stock_disponible: stockMap.get(item.producto.id_producto) ?? 0,
+        } as any;
+      }
+      return plainItem;
+    });
+    return plainPedido;
   });
 }
 
