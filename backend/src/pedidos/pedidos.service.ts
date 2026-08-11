@@ -27,13 +27,20 @@ export class PedidosService {
     private readonly gateway: PedidosGateway,
   ) {}
 
-  private parseDateMaybe(v?: string) {
+  private parseDateMaybe(v?: string, position: 'start' | 'end' = 'start'): Date | undefined {
     if (!v) return undefined;
-    // La cadena 'YYYY-MM-DD' se interpreta como medianoche UTC.
-    // Para asegurar que se interprete como medianoche en la zona horaria local del servidor,
-    // añadimos 'T00:00:00'. Esto corrige los errores de rango de un solo día.
-    const d = new Date(`${v}T00:00:00`);
-    if (isNaN(d.getTime())) throw new BadRequestException('Fecha inválida');
+    // La cadena 'YYYY-MM-DD' se trata como una fecha en Bolivia.
+    // Construimos un objeto Date que represente esto correctamente en UTC para la BD.
+    // '2023-08-11' en Bolivia (UTC-4) es '2023-08-11T00:00:00.000-04:00'.
+    let dateStr: string;
+    if (position === 'start') {
+      dateStr = `${v}T00:00:00.000-04:00`; // Inicio del día en Bolivia
+    } else {
+      dateStr = `${v}T23:59:59.999-04:00`; // Fin del día en Bolivia
+    }
+
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) throw new BadRequestException(`Fecha inválida: ${v}`);
     return d;
   }
 
@@ -562,19 +569,14 @@ export class PedidosService {
     if (q.metodo_pago) where.metodo_pago = q.metodo_pago;
     if (q.ambiente) where.ambiente = q.ambiente;
 
-    const d1 = this.parseDateMaybe(q.desde);
-    const d2 = this.parseDateMaybe(q.hasta);
+    const d1 = this.parseDateMaybe(q.desde, 'start');
+    const d2 = this.parseDateMaybe(q.hasta, 'end');
     if (d1 && d2) {
-      const end = new Date(d2);
-      if (end.getHours() === 0 && end.getMinutes() === 0)
-        end.setHours(23, 59, 59, 999);
-      where.created_at = Between(d1, end);
-    } else if (d1) where.created_at = MoreThanOrEqual(d1);
-    else if (d2) {
-      const end = new Date(d2);
-      if (end.getHours() === 0 && end.getMinutes() === 0)
-        end.setHours(23, 59, 59, 999);
-      where.created_at = LessThanOrEqual(end);
+      where.created_at = Between(d1, d2);
+    } else if (d1) {
+      where.created_at = MoreThanOrEqual(d1);
+    } else if (d2) {
+      where.created_at = LessThanOrEqual(d2);
     }
 
     const page = Math.max(1, Number(q.page ?? 1));

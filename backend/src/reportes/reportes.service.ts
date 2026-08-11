@@ -43,31 +43,21 @@ export class ReportesService {
   ) {}
 
   // --- Helpers de fechas ---
-  private parseDateMaybe(v?: string): Date | undefined {
+  private parseDateMaybe(v?: string, position: 'start' | 'end' = 'start'): Date | undefined {
     if (!v) return undefined;
-    // La cadena 'YYYY-MM-DD' se interpreta como medianoche UTC.
-    // Para asegurar que se interprete como medianoche en la zona horaria local del servidor,
-    // añadimos 'T00:00:00'. Esto corrige los errores de rango de un solo día.
-    const d = new Date(`${v}T00:00:00`);
-    if (isNaN(d.getTime())) throw new BadRequestException('Fecha inválida');
-    return d;
-  }
-
-  private buildBetween(desde?: string, hasta?: string) {
-    const d1 = this.parseDateMaybe(desde);
-    const d2 = this.parseDateMaybe(hasta);
-    if (d1 && d2) {
-      const end = new Date(d2);
-      if (end.getHours() === 0 && end.getMinutes() === 0) end.setHours(23, 59, 59, 999);
-      return Between(d1, end);
-    } else if (d1) {
-      return MoreThanOrEqual(d1);
-    } else if (d2) {
-      const end = new Date(d2);
-      if (end.getHours() === 0 && end.getMinutes() === 0) end.setHours(23, 59, 59, 999);
-      return LessThanOrEqual(end);
+    // La cadena 'YYYY-MM-DD' se trata como una fecha en Bolivia.
+    // Construimos un objeto Date que represente esto correctamente en UTC para la BD.
+    // '2023-08-11' en Bolivia (UTC-4) es '2023-08-11T00:00:00.000-04:00'.
+    let dateStr: string;
+    if (position === 'start') {
+      dateStr = `${v}T00:00:00.000-04:00`; // Inicio del día en Bolivia
+    } else {
+      dateStr = `${v}T23:59:59.999-04:00`; // Fin del día en Bolivia
     }
-    return undefined;
+
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) throw new BadRequestException(`Fecha inválida: ${v}`);
+    return d;
   }
 
   
@@ -86,13 +76,8 @@ export class ReportesService {
 
     if (q.caja) qb.andWhere('p.id_caja = :caja', { caja: q.caja });
 
-    const expr = this.buildBetween(q.desde, q.hasta);
-    if (expr) {
-      // usamos created_at del pedido
-      const d1 = (expr as any)._low ?? new Date(0);
-      const d2 = (expr as any)._high ?? new Date();
-      qb.andWhere('p.created_at BETWEEN :ini AND :fin', { ini: d1, fin: d2 });
-    }
+    const { ini, fin } = this.rango(q.desde, q.hasta);
+    qb.andWhere('p.created_at BETWEEN :ini AND :fin', { ini, fin });
 
     qb.groupBy('pr.id_producto')
       .addGroupBy('pr.nombre')
@@ -128,12 +113,8 @@ export class ReportesService {
       .addSelect('SUM(m.cantidad)', 'merma_total')
       .where('m.tipo = :t', { t: TipoMovimiento.MERMA });
 
-    const expr = this.buildBetween(q.desde, q.hasta);
-    if (expr) {
-      const d1 = (expr as any)._low ?? new Date(0);
-      const d2 = (expr as any)._high ?? new Date();
-      qb.andWhere('m.created_at BETWEEN :ini AND :fin', { ini: d1, fin: d2 });
-    }
+    const { ini, fin } = this.rango(q.desde, q.hasta);
+    qb.andWhere('m.created_at BETWEEN :ini AND :fin', { ini, fin });
 
     qb.groupBy('p.id_producto').addGroupBy('p.nombre').addGroupBy('p.tipo').orderBy('p.id_producto', 'ASC');
 
@@ -161,13 +142,8 @@ export class ReportesService {
 
   /** Convierte el rango YYYY-MM-DD en fechas usables; "hasta" se extiende a fin del día. */
   private rango(desde?: string, hasta?: string): { ini: Date; fin: Date } {
-    const ini = this.parseDateMaybe(desde) ?? new Date(0);
-    let fin = this.parseDateMaybe(hasta);
-    if (fin) {
-      if (fin.getHours() === 0 && fin.getMinutes() === 0) fin.setHours(23, 59, 59, 999);
-    } else {
-      fin = new Date();
-    }
+    const ini = this.parseDateMaybe(desde, 'start') ?? new Date(0);
+    const fin = this.parseDateMaybe(hasta, 'end') ?? new Date();
     return { ini, fin };
   }
 
