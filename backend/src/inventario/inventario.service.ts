@@ -5,7 +5,6 @@ import { InventarioProducto, ModoInventario } from './inventario-producto.entity
 import { InventarioMovimiento, TipoMovimiento } from './inventario-mov.entity';
 import { Producto, TipoProducto } from '../productos/producto.entity';
 import { AperturaPlatosDto } from './dto/apertura-platos.dto';
-import { IngresoBebidaDto } from './dto/ingreso-bebida.dto';
 import { MermaDto, MermaSobre } from './dto/merma.dto';
 import { QueryDisponibleDto } from './dto/query-disponible.dto';
 

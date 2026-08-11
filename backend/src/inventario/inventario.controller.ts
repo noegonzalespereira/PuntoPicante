@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { InventarioService } from './inventario.service';
 import { AperturaPlatosDto } from './dto/apertura-platos.dto';
-import { IngresoBebidaDto } from './dto/ingreso-bebida.dto';
 import { MermaDto } from './dto/merma.dto';
 import { QueryDisponibleDto } from './dto/query-disponible.dto';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
@@ -23,13 +22,6 @@ export class InventarioController {
   @Roles('GERENTE', 'CAJERO','COCINA')
   aperturaPlatos(@Body() dto: AperturaPlatosDto) {
     return this.service.aperturaPlatos(dto);
-  }
-
-  /** Ingreso de stock para bebidas (global) */
-  @Post('ingreso-bebida')
-  @Roles('GERENTE','CAJERO')
-  ingresoBebida(@Body() dto: IngresoBebidaDto) {
-    return this.service.ingresoBebida(dto);
   }
 
   /** Merma (plato por fecha o bebida global) */
