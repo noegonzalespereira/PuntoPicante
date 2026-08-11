@@ -45,7 +45,10 @@ export class ReportesService {
   // --- Helpers de fechas ---
   private parseDateMaybe(v?: string): Date | undefined {
     if (!v) return undefined;
-    const d = new Date(v);
+    // La cadena 'YYYY-MM-DD' se interpreta como medianoche UTC.
+    // Para asegurar que se interprete como medianoche en la zona horaria local del servidor,
+    // añadimos 'T00:00:00'. Esto corrige los errores de rango de un solo día.
+    const d = new Date(`${v}T00:00:00`);
     if (isNaN(d.getTime())) throw new BadRequestException('Fecha inválida');
     return d;
   }

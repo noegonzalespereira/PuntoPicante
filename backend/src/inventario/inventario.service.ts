@@ -22,8 +22,7 @@ export class InventarioService {
   private ymd(date = new Date()) {
     const d = date ? new Date(date) : new Date();
 
-    // Forzar zona horaria de Bolivia (UTC-4) para consistencia,
-    // sin importar la configuración del servidor.
+   
     const utc = d.getTime() + d.getTimezoneOffset() * 60000;
     const boliviaOffset = -4 * 60 * 60000;
     const local = new Date(utc + boliviaOffset);
