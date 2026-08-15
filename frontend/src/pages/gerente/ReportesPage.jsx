@@ -106,19 +106,25 @@ async function obtenerFechaReferenciaDashboardLike() {
 
 export default function ReportePage() {
 
-  // Filtros por rango
-const [fechaDesde, setFechaDesde] = useState(ymdLaPaz());
-const [fechaHasta, setFechaHasta] = useState(ymdLaPaz());
-const reportRef = useRef(null);
-const rango = useMemo(() => {
-  const d = clampYMD(fechaDesde);
-  const h = clampYMD(fechaHasta);
-  if (d && h && d > h) {
-    return { desde: h, hasta: d }; // corrige si el usuario los invierte
-  }
-  return { desde: d, hasta: h };
-}, [fechaDesde, fechaHasta]);
+  const [filterMode, setFilterMode] = useState('dia'); // 'dia' o 'rango'
+  const [fechaDia, setFechaDia] = useState(ymdLaPaz());
+  const [fechaDesde, setFechaDesde] = useState(ymdLaPaz());
+  const [fechaHasta, setFechaHasta] = useState(ymdLaPaz());
+  const reportRef = useRef(null);
 
+  const rango = useMemo(() => {
+    if (filterMode === 'dia') {
+      const d = clampYMD(fechaDia);
+      return { desde: d, hasta: d };
+    }
+    // filterMode === 'rango'
+    const d = clampYMD(fechaDesde);
+    const h = clampYMD(fechaHasta);
+    if (d && h && d > h) {
+      return { desde: h, hasta: d }; // auto-correct
+    }
+    return { desde: d, hasta: h };
+  }, [filterMode, fechaDia, fechaDesde, fechaHasta]);
 
   // Estado UI
   const [activeTab, setActiveTab] = useState("operacional");
@@ -164,21 +170,11 @@ const rango = useMemo(() => {
       .reduce((s, p) => s + Number(p.cantidad ?? 0), 0),
     [inventario.vendidosDetalle]
   );
-
   const cargar = useCallback(async () => {
     setLoading(true);
     setErrorMsg("");
 
-    // Usamos el rango elegido
-    let { desde, hasta } = rango;
-    if (desde && hasta && desde === hasta) {
-    const ref = await obtenerFechaReferenciaDashboardLike();
-    if (ref?.fechaRef) {
-      desde = ref.fechaRef;
-      hasta = ref.fechaRef;
-    }
-  }
-    
+    const { desde, hasta } = rango;
 
     try {
       // 1) Resumen de ventas: TODO agregado en el backend (sin tope de 100 pedidos).
@@ -962,65 +958,70 @@ const rango = useMemo(() => {
         <Card className="mb-4 filtro-card">
           <Card.Body>
             <Row className="align-items-center g-3">
-  <Col md={5}>
-    <Form.Group>
-      <Form.Label className="filtro-label">
-        <BsCalendar className="me-2" /> Rango del Reporte
-      </Form.Label>
-      <div className="d-flex flex-column flex-sm-row gap-2">
-        <Form.Control
-          type="date"
-          value={fechaDesde}
-          onChange={e => setFechaDesde(e.target.value)}
-          className="form-control-custom"
-        />
-        <Form.Control
-          type="date"
-          value={fechaHasta}
-          onChange={e => setFechaHasta(e.target.value)}
-          className="form-control-custom"
-        />
-      </div>
-    </Form.Group>
-  </Col>
+              <Col md={5}>
+                <Form.Group>
+                  <Form.Label className="filtro-label">
+                    <BsCalendar className="me-2" /> Tipo de Filtro
+                  </Form.Label>
+                  <div className="d-flex gap-2 mb-2">
+                    <Button variant={filterMode === 'dia' ? 'primary' : 'outline-primary'} size="sm" onClick={() => setFilterMode('dia')}>Por Día</Button>
+                    <Button variant={filterMode === 'rango' ? 'primary' : 'outline-primary'} size="sm" onClick={() => setFilterMode('rango')}>Por Rango</Button>
+                  </div>
+                  {filterMode === 'dia' ? (
+                    <Form.Control
+                      type="date"
+                      value={fechaDia}
+                      onChange={e => setFechaDia(e.target.value)}
+                      className="form-control-custom"
+                    />
+                  ) : (
+                    <div className="d-flex flex-column flex-sm-row gap-2">
+                      <Form.Control
+                        type="date"
+                        value={fechaDesde}
+                        onChange={e => setFechaDesde(e.target.value)}
+                        className="form-control-custom"
+                      />
+                      <Form.Control
+                        type="date"
+                        value={fechaHasta}
+                        onChange={e => setFechaHasta(e.target.value)}
+                        className="form-control-custom"
+                      />
+                    </div>
+                  )}
+                </Form.Group>
+              </Col>
 
-  <Col md={4} className="text-center d-none d-md-block">
-    <span className="fecha-label">Rango seleccionado</span>
-    <h6 className="fecha-valor">
-      {formatFechaVisual(rango.desde)} — {formatFechaVisual(rango.hasta)}
-    </h6>
-  </Col>
+              <Col md={4} className="text-center d-none d-md-block">
+                <span className="fecha-label">Rango seleccionado</span>
+                <h6 className="fecha-valor">
+                  {rango.desde === rango.hasta
+                    ? formatFechaVisual(rango.desde)
+                    : `${formatFechaVisual(rango.desde)} — ${formatFechaVisual(rango.hasta)}`}
+                </h6>
+              </Col>
 
-  <Col md={3} className="text-end d-flex flex-column align-items-end gap-2">
-    <Button
-      className="btn-export"
-      onClick={cargar}
-      disabled={loading}
-    >
-      {loading ? (
-        <Spinner
-          size="sm"
-          animation="border"
-          className="me-2"
-        />
-      ) : (
-        <BsArrowRepeat className="me-2" />
-      )}
-      Actualizar
-    </Button>
-    <Button
-  variant="outline-secondary"
-  size="sm"
-  onClick={handleExportPDF}
-  disabled={loading}
->
-  <BsFileEarmarkPdf className="me-2" />
-  Descargar PDF
-</Button>
-
-  </Col>
-</Row>
-
+              <Col md={3} className="text-end d-flex flex-column align-items-end gap-2">
+                <Button
+                  className="btn-export"
+                  onClick={cargar}
+                  disabled={loading}
+                >
+                  {loading ? <Spinner size="sm" animation="border" className="me-2" /> : <BsArrowRepeat className="me-2" />}
+                  Actualizar
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={handleExportPDF}
+                  disabled={loading}
+                >
+                  <BsFileEarmarkPdf className="me-2" />
+                  Descargar PDF
+                </Button>
+              </Col>
+            </Row>
           </Card.Body>
         </Card>
 
