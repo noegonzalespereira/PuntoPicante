@@ -43,17 +43,30 @@ export class ReportesService {
     @InjectRepository(InventarioProducto) private readonly invRepo: Repository<InventarioProducto>,
   ) {}
 
+  private ymd(date?: Date) {
+    const d = date ? new Date(date) : new Date();
+    const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    const boliviaOffset = -4 * 60 * 60000;
+    const local = new Date(utc + boliviaOffset);
+    return local.toISOString().slice(0, 10);
+  }
+
   // --- Helpers de fechas ---
   private parseDateMaybe(v?: string, position: 'start' | 'end' = 'start'): Date | undefined {
     if (!v) return undefined;
     // La cadena 'YYYY-MM-DD' se trata como una fecha en Bolivia.
     // Construimos un objeto Date que represente esto correctamente en UTC para la BD.
-    // '2023-08-11' en Bolivia (UTC-4) es '2023-08-11T00:00:00.000-04:00'.
     let dateStr: string;
     if (position === 'start') {
       dateStr = `${v}T00:00:00.000-04:00`; // Inicio del día en Bolivia
     } else {
-      dateStr = `${v}T23:59:59.999-04:00`; // Fin del día en Bolivia
+      // Para 'end', calculamos el inicio del DÍA SIGUIENTE en Bolivia.
+      // Esto permite usar '<' en la consulta, que es más robusto que 'BETWEEN ... 23:59:59.999'.
+      const endDate = new Date(v);
+      // Usamos setUTCDate para evitar problemas con cambios de horario de verano locales
+      endDate.setUTCDate(endDate.getUTCDate() + 1); // Sumar un día
+      const nextDayStr = endDate.toISOString().slice(0, 10); // Formato YYYY-MM-DD del día siguiente
+      dateStr = `${nextDayStr}T00:00:00.000-04:00`; // Inicio del día siguiente en Bolivia
     }
 
     const d = new Date(dateStr);
@@ -144,7 +157,7 @@ export class ReportesService {
   /** Convierte el rango YYYY-MM-DD en fechas usables; "hasta" se extiende a fin del día. */
   private rango(desde?: string, hasta?: string): { ini: Date; fin: Date } {
     const ini = this.parseDateMaybe(desde, 'start') ?? new Date(0); // Si no hay 'desde', empieza desde el inicio de los tiempos
-    const fin = this.parseDateMaybe(hasta, 'end') ?? this.parseDateMaybe(this.ymd(), 'end'); // Si no hay 'hasta', usa el inicio del día siguiente (hoy)
+    const fin = this.parseDateMaybe(hasta, 'end') ?? this.parseDateMaybe(this.ymd(), 'end')!; // Si no hay 'hasta', usa el inicio del día siguiente (hoy)
     return { ini, fin };
   }
 
