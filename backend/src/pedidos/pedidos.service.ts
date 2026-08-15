@@ -2,7 +2,7 @@ import {
   BadRequestException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, Between, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
+import { DataSource, Repository, MoreThanOrEqual, LessThan, In, And } from 'typeorm';
 import { Caja, EstadoCaja } from '../caja/caja.entity';
 import { Producto, TipoProducto } from '../productos/producto.entity';
 import { DestinoItem, DetallePedido,EstadoItem } from './detalle-pedido.entity';
@@ -31,12 +31,17 @@ export class PedidosService {
     if (!v) return undefined;
     // La cadena 'YYYY-MM-DD' se trata como una fecha en Bolivia.
     // Construimos un objeto Date que represente esto correctamente en UTC para la BD.
-    // '2023-08-11' en Bolivia (UTC-4) es '2023-08-11T00:00:00.000-04:00'.
     let dateStr: string;
     if (position === 'start') {
       dateStr = `${v}T00:00:00.000-04:00`; // Inicio del día en Bolivia
     } else {
-      dateStr = `${v}T23:59:59.999-04:00`; // Fin del día en Bolivia
+      // Para 'end', calculamos el inicio del DÍA SIGUIENTE en Bolivia.
+      // Esto permite usar '<' en la consulta, que es más robusto que 'BETWEEN ... 23:59:59.999'.
+      const endDate = new Date(v);
+      // Usamos setUTCDate para evitar problemas con cambios de horario de verano locales
+      endDate.setUTCDate(endDate.getUTCDate() + 1); // Sumar un día
+      const nextDayStr = endDate.toISOString().slice(0, 10); // Formato YYYY-MM-DD del día siguiente
+      dateStr = `${nextDayStr}T00:00:00.000-04:00`; // Inicio del día siguiente en Bolivia
     }
 
     const d = new Date(dateStr);
@@ -569,14 +574,15 @@ export class PedidosService {
     if (q.metodo_pago) where.metodo_pago = q.metodo_pago;
     if (q.ambiente) where.ambiente = q.ambiente;
 
-    const d1 = this.parseDateMaybe(q.desde, 'start');
-    const d2 = this.parseDateMaybe(q.hasta, 'end');
-    if (d1 && d2) {
-      where.created_at = Between(d1, d2);
-    } else if (d1) {
-      where.created_at = MoreThanOrEqual(d1);
-    } else if (d2) {
-      where.created_at = LessThanOrEqual(d2);
+    const ini = this.parseDateMaybe(q.desde, 'start');
+    const fin = this.parseDateMaybe(q.hasta, 'end');
+
+    if (ini && fin) {
+      where.created_at = And(MoreThanOrEqual(ini), LessThan(fin));
+    } else if (ini) {
+      where.created_at = MoreThanOrEqual(ini);
+    } else if (fin) {
+      where.created_at = LessThan(fin);
     }
 
     const page = Math.max(1, Number(q.page ?? 1));

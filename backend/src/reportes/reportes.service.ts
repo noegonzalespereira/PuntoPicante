@@ -17,6 +17,7 @@ import { InventarioMovimiento, TipoMovimiento } from '../inventario/inventario-m
 import { InventarioProducto } from '../inventario/inventario-producto.entity';
 import { ReportRangeDto } from './dto/report-range.dto';
 
+
 type RangoFechasCaja = { desde?: string; hasta?: string; caja?: number };
 type RangoFechas = { desde?: string; hasta?: string };
 
@@ -77,7 +78,7 @@ export class ReportesService {
     if (q.caja) qb.andWhere('p.id_caja = :caja', { caja: q.caja });
 
     const { ini, fin } = this.rango(q.desde, q.hasta);
-    qb.andWhere('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+    qb.andWhere('p.created_at >= :ini AND p.created_at < :fin', { ini, fin });
 
     qb.groupBy('pr.id_producto')
       .addGroupBy('pr.nombre')
@@ -114,7 +115,7 @@ export class ReportesService {
       .where('m.tipo = :t', { t: TipoMovimiento.MERMA });
 
     const { ini, fin } = this.rango(q.desde, q.hasta);
-    qb.andWhere('m.created_at BETWEEN :ini AND :fin', { ini, fin });
+    qb.andWhere('m.created_at >= :ini AND m.created_at < :fin', { ini, fin });
 
     qb.groupBy('p.id_producto').addGroupBy('p.nombre').addGroupBy('p.tipo').orderBy('p.id_producto', 'ASC');
 
@@ -142,8 +143,8 @@ export class ReportesService {
 
   /** Convierte el rango YYYY-MM-DD en fechas usables; "hasta" se extiende a fin del día. */
   private rango(desde?: string, hasta?: string): { ini: Date; fin: Date } {
-    const ini = this.parseDateMaybe(desde, 'start') ?? new Date(0);
-    const fin = this.parseDateMaybe(hasta, 'end') ?? new Date();
+    const ini = this.parseDateMaybe(desde, 'start') ?? new Date(0); // Si no hay 'desde', empieza desde el inicio de los tiempos
+    const fin = this.parseDateMaybe(hasta, 'end') ?? this.parseDateMaybe(this.ymd(), 'end'); // Si no hay 'hasta', usa el inicio del día siguiente (hoy)
     return { ini, fin };
   }
 
@@ -165,7 +166,7 @@ export class ReportesService {
       .addSelect('pr.tipo', 'tipo')
       .addSelect('SUM(d.cantidad)', 'unidades')
       .addSelect('SUM(d.subtotal)', 'ventas')
-      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+      .where('p.created_at >= :ini AND p.created_at < :fin', { ini, fin });
     if (caja) qProd.andWhere('p.id_caja = :caja', { caja });
     qProd
       .groupBy('pr.id_producto')
@@ -187,7 +188,7 @@ export class ReportesService {
       .innerJoin('d.pedido', 'p')
       .select('d.destino', 'destino')
       .addSelect('SUM(d.cantidad)', 'unidades')
-      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+      .where('p.created_at >= :ini AND p.created_at < :fin', { ini, fin });
     if (caja) qDest.andWhere('p.id_caja = :caja', { caja });
     qDest.groupBy('d.destino');
     const destRaw = await qDest.getRawMany();
@@ -202,7 +203,7 @@ export class ReportesService {
       .createQueryBuilder('p')
       .select('p.tipo_pedido', 'tipo')
       .addSelect('COUNT(1)', 'cantidad')
-      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin });
+      .where('p.created_at >= :ini AND p.created_at < :fin', { ini, fin });
     if (caja) qTipo.andWhere('p.id_caja = :caja', { caja });
     qTipo.groupBy('p.tipo_pedido');
     const tipoRaw = await qTipo.getRawMany();
@@ -219,7 +220,7 @@ export class ReportesService {
       .select('p.metodo_pago', 'metodo')
       .addSelect('SUM(p.total)', 'monto')
       .addSelect('COUNT(1)', 'pedidos')
-      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
+      .where('p.created_at >= :ini AND p.created_at < :fin', { ini, fin })
       .andWhere('p.estado_pago::text = :pg', { pg: 'PAGADO' });
     if (caja) qPago.andWhere('p.id_caja = :caja', { caja });
     qPago.groupBy('p.metodo_pago');
@@ -237,7 +238,7 @@ export class ReportesService {
     // 5) Pedidos despachados (estado del pedido = LISTO)
     const qDesp = this.pedRepo
       .createQueryBuilder('p')
-      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
+      .where('p.created_at >= :ini AND p.created_at < :fin', { ini, fin })
       .andWhere('p.estado_pedido::text = :lst', { lst: 'LISTO' });
     if (caja) qDesp.andWhere('p.id_caja = :caja', { caja });
     const pedidos_despachados = await qDesp.getCount();
@@ -290,7 +291,7 @@ export class ReportesService {
       )
       .addSelect('SUM(d.subtotal)', 'total')
       .addSelect('COUNT(DISTINCT p.id_pedido)', 'pedidos')
-      .where('p.created_at BETWEEN :ini AND :fin', { ini, fin })
+      .where('p.created_at >= :ini AND p.created_at < :fin', { ini, fin })
       .andWhere("p.estado_pago::text = 'PAGADO'")
       .groupBy("TO_CHAR(p.created_at AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD')")
       .orderBy("TO_CHAR(p.created_at AT TIME ZONE 'America/La_Paz', 'YYYY-MM-DD')", 'ASC');
