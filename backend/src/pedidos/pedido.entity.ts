@@ -56,6 +56,9 @@ export class Pedido {
   total: string;
   @Column({ type: 'enum', enum: EstadoPedido, default: EstadoPedido.PENDIENTE, name: 'estado_pedido' })
   estado_pedido: EstadoPedido;
+
+  @Column({ type: 'boolean', default: false, name: 'prioritario' })
+  prioritario: boolean;
  
 
   @CreateDateColumn({ type: 'timestamp',name: 'created_at' })

@@ -44,15 +44,12 @@ const CocinaPage = () => {
   };
 
   /**
-   * Determina si un pedido es prioritario (ítems añadidos después de un tiempo).
-   * Compara la fecha de creación con la de actualización.
+  * Determina si un pedido fue marcado como prioritario al añadir ítems.
    * @param {object} pedido El objeto del pedido.
    * @returns {boolean}
    */
   const isPriority = (pedido) => {
-    // Un pedido es prioritario si fue modificado (ítems añadidos) después de su creación.
-    // La fecha de creación y actualización son strings, pero una comparación simple es suficiente.
-    return pedido.updated_at !== pedido.created_at;
+    return pedido.prioritario === true;
   };
 
   const cargarCajaYDatos = useCallback(async () => {
@@ -253,7 +250,7 @@ const CocinaPage = () => {
       )
     ).sort((a, b) => {
       // Orden de prioridad:
-      // 1. Los pedidos con items añadidos van primero.
+      // 1. Los pedidos marcados como prioritarios van primero.
       // 2. Luego, se ordenan por fecha de actualización (los más antiguos primero).
       return isPriority(b) - isPriority(a) || new Date(a.updated_at) - new Date(b.updated_at);
 

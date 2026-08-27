@@ -1,4 +1,4 @@
-import { IsArray, ArrayMinSize, IsInt, IsPositive, IsOptional, ValidateNested, IsEnum } from 'class-validator';
+import { IsArray, ArrayMinSize, IsInt, IsPositive, IsOptional, ValidateNested, IsEnum, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { DestinoItem } from '../detalle-pedido.entity';
 class ItemAddDto {
@@ -15,6 +15,9 @@ class ItemAddDto {
 }
 
 export class AddItemsDto {
+  @IsOptional() @IsBoolean()
+  prioritario?: boolean;
+
   @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true })
   @Type(() => ItemAddDto)
   items: ItemAddDto[];

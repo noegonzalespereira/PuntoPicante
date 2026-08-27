@@ -88,7 +88,7 @@ async cocinaResumen(@Query('id_caja') id_caja?: string) {
   @Post(':id/items')
   @Roles('CAJERO', 'GERENTE')
   agregarItems(@Param('id') id: string, @Body() dto: AddItemsDto) {
-    return this.service.agregarItems(Number(id), dto.items);
+    return this.service.agregarItems(Number(id), dto.items, dto.prioritario ?? false);
   }
 
   /** Editar un ítem — CAJERO/GERENTE */

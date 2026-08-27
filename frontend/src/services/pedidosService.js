@@ -39,8 +39,8 @@ export const pedidoService = {
     return data;
   },
 
-  async addItems(id, items) {
-    const { data } = await api.post(`/pedidos/${id}/items`, { items });
+  async addItems(id, items, prioritario = false) {
+    const { data } = await api.post(`/pedidos/${id}/items`, { items, prioritario });
     return data;
   },
 

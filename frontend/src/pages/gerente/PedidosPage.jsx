@@ -65,6 +65,7 @@ export default function PedidosPage() {
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [], extras: [] });
   const [appendContext, setAppendContext] = useState(null);
+  const [anadirPrioritario, setAnadirPrioritario] = useState(false);
   const [saving, setSaving] = useState(false);
   const [modalEditar, setModalEditar] = useState({ open: false, loading: false, pedido: null });
 
@@ -170,14 +171,18 @@ export default function PedidosPage() {
         return false;
       }
     }
-    const existe = pedidoActual.items.find((i) => i.id_producto === producto.id_producto);
     const destinoPorDefecto = pedidoActual.tipo_pedido === "LLEVAR" ? "LLEVAR" : "MESA";
+    const existe = pedidoActual.items.find(
+      (i) => i.id_producto === producto.id_producto && i.destino === destinoPorDefecto
+    );
 
     if (existe) {
       setPedidoActual((prev) => ({
         ...prev,
         items: prev.items.map((i) =>
-          i.id_producto === producto.id_producto ? { ...i, cantidad: i.cantidad + 1 } : i
+          i.id_producto === producto.id_producto && i.destino === destinoPorDefecto
+            ? { ...i, cantidad: i.cantidad + 1 }
+            : i
         ),
       }));
     } else {
@@ -267,7 +272,7 @@ export default function PedidosPage() {
     setSaving(true);
     if (appendContext) {
       try {
-        await pedidoService.addItems(appendContext.id_pedido, payload.items);
+        await pedidoService.addItems(appendContext.id_pedido, payload.items, anadirPrioritario);
         await cargarStockDelDia();
         toast.success(`${payload.items.length} ítem(s) añadidos al pedido #${appendContext.num_pedido}`);
         setPedidoActual({
@@ -280,6 +285,7 @@ export default function PedidosPage() {
           items: [],
         });
         setAppendContext(null);
+        setAnadirPrioritario(false);
         setActiveTab("listado");
         loadData(1, filtros);
       } catch (err) {
@@ -522,6 +528,7 @@ export default function PedidosPage() {
       tipo_pedido: p.tipo_pedido,
       num_mesa: p.num_mesa ?? null,
     });
+    setAnadirPrioritario(false);
 
     setActiveTab("nuevo");
     setModalEditar({ open: false, loading: false, pedido: null });
@@ -1014,6 +1021,17 @@ export default function PedidosPage() {
                   <Alert variant="info" className="mb-3">
                     Este pedido es <strong>MIXTO</strong>. Elige el destino (MESA/LLEVAR) por ítem.
                   </Alert>
+                )}
+
+                {appendContext && (
+                  <Form.Check
+                    type="switch"
+                    id="anadir-prioritario"
+                    label="Enviar estos platos como prioridad a cocina"
+                    checked={anadirPrioritario}
+                    onChange={(e) => setAnadirPrioritario(e.target.checked)}
+                    className="mb-3"
+                  />
                 )}
 
                 <hr className="mt-0" />
