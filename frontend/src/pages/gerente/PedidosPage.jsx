@@ -172,9 +172,9 @@ export default function PedidosPage() {
       }
     }
     const destinoPorDefecto = pedidoActual.tipo_pedido === "LLEVAR" ? "LLEVAR" : "MESA";
-    const existe = pedidoActual.items.find(
-      (i) => i.id_producto === producto.id_producto && i.destino === destinoPorDefecto
-    );
+    const existe = pedidoActual.tipo_pedido === "MIXTO"
+      ? null
+      : pedidoActual.items.find((i) => i.id_producto === producto.id_producto);
 
     if (existe) {
       setPedidoActual((prev) => ({
@@ -197,6 +197,7 @@ export default function PedidosPage() {
             cantidad: 1,
             destino: destinoPorDefecto,
             notas: "",
+            lineId: `${producto.id_producto}-${Date.now()}-${Math.random()}`,
           },
         ],
       }));
@@ -1040,7 +1041,7 @@ export default function PedidosPage() {
                 {pedidoActual.items.length ? (
                   <>
                     {pedidoActual.items.map((item) => (
-                      <div key={item.id_producto} className="py-2 item-carrito-resumen">
+                      <div key={item.lineId ?? item.id_producto} className="py-2 item-carrito-resumen">
                         <div className="d-flex justify-content-between align-items-center">
                           <div className="me-2">
                             <strong>{item.nombre}</strong>
@@ -1057,7 +1058,7 @@ export default function PedidosPage() {
                                 setPedidoActual((prev) => ({
                                   ...prev,
                                   items: prev.items.map((i) =>
-                                    i.id_producto === item.id_producto
+                                    (i.lineId ?? i.id_producto) === (item.lineId ?? item.id_producto)
                                       ? { ...i, cantidad: Math.max(1, i.cantidad - 1) }
                                       : i
                                   ),
@@ -1085,7 +1086,7 @@ export default function PedidosPage() {
                                   return {
                                   ...prev,
                                   items: prev.items.map((i) =>
-                                    i.id_producto === item.id_producto
+                                    (i.lineId ?? i.id_producto) === (item.lineId ?? item.id_producto)
                                       ? { ...i, cantidad: i.cantidad + 1 }
                                       : i
                                   ),
@@ -1103,7 +1104,7 @@ export default function PedidosPage() {
                                 setPedidoActual((prev) => ({
                                   ...prev,
                                   items: prev.items.filter(
-                                    (i) => i.id_producto !== item.id_producto
+                                    (i) => (i.lineId ?? i.id_producto) !== (item.lineId ?? item.id_producto)
                                   ),
                                 }))
                               }
@@ -1123,7 +1124,7 @@ export default function PedidosPage() {
                               setPedidoActual((prev) => ({
                                 ...prev,
                                 items: prev.items.map((i) =>
-                                  i.id_producto === item.id_producto
+                                  (i.lineId ?? i.id_producto) === (item.lineId ?? item.id_producto)
                                     ? { ...i, notas: e.target.value }
                                     : i
                                 ),
@@ -1142,7 +1143,7 @@ export default function PedidosPage() {
                                 setPedidoActual((prev) => ({
                                   ...prev,
                                   items: prev.items.map((i) =>
-                                    i.id_producto === item.id_producto
+                                    (i.lineId ?? i.id_producto) === (item.lineId ?? item.id_producto)
                                       ? { ...i, destino: e.target.value }
                                       : i
                                   ),

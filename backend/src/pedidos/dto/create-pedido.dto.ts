@@ -1,4 +1,4 @@
-import { ValidateIf, IsArray, ArrayMinSize, IsEnum, IsIn, IsInt, IsOptional, IsPositive, IsString, MaxLength, ValidateNested, Min, Max } from 'class-validator';
+import { ValidateIf, IsArray, ArrayMinSize, IsEnum, IsIn, IsInt, IsOptional, IsPositive, IsString, MaxLength, ValidateNested, Min, Max, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MetodoPago, TipoPedido,EstadoPago } from '../pedido.entity';
 import { DestinoItem,EstadoItem } from '../detalle-pedido.entity';
@@ -21,6 +21,11 @@ class ItemDto {
 }
 
 export class CreatePedidoDto {
+  // Se acepta para tolerar clientes que reutilicen el formulario de añadir.
+  // La prioridad solo se aplica al agregar ítems a un pedido existente.
+  @IsOptional() @IsBoolean()
+  prioritario?: boolean;
+
   @IsInt() @IsPositive()
   id_caja: number;
 

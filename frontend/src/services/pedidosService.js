@@ -40,7 +40,8 @@ export const pedidoService = {
   },
 
   async addItems(id, items, prioritario = false) {
-    const { data } = await api.post(`/pedidos/${id}/items`, { items, prioritario });
+    const body = prioritario ? { items, prioritario: true } : { items };
+    const { data } = await api.post(`/pedidos/${id}/items`, body);
     return data;
   },
 
