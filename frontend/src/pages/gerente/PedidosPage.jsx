@@ -84,7 +84,7 @@ export default function PedidosPage() {
     Number(stockInfoMap?.get(id_producto)?.stock ?? 0);
 
   const esMesaRequerida = (tipo) => tipo === "MESA" || tipo === "MIXTO";
-  const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 8;
+  const mesaValida = (n) => Number.isInteger(n) && n >= 1 && n <= 9;
 
   async function cargarStockDelDia() {
     try {
@@ -224,7 +224,7 @@ export default function PedidosPage() {
       } else {
         const nMesa = Number(pedidoActual.num_mesa);
         if (!mesaValida(nMesa)) {
-          toast.warning("Número de mesa inválido (1–8)");
+          toast.warning("Número de mesa inválido (1–9)");
           return false;
         }
       }
