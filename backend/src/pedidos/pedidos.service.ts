@@ -558,6 +558,11 @@ export class PedidosService {
 
     if (cajaAbierta) {
       q.caja = cajaAbierta.id_caja;
+    } else if (!q.caja && !q.desde && !q.hasta) {
+      // Caja cerrada y sin filtro de fecha: no listar todo el historial
+      const page = Math.max(1, Number(q.page ?? 1));
+      const pageSize = Math.max(1, Math.min(100, Number(q.pageSize ?? 50)));
+      return { total: 0, page, pageSize, data: [] };
     }
 
     const where: any = {};

@@ -60,7 +60,7 @@ export default function PedidosPage() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPedidos, setTotalPedidos] = useState(0);
-  const [filtros, setFiltros] = useState({ tipo_pedido: '', ambiente: '' });
+  const [filtros, setFiltros] = useState({ tipo_pedido: '', ambiente: '', desde: '', hasta: '' });
   const PAGE_SIZE = 15;
   const [cajaAbierta, setCajaAbierta] = useState(null);
   const [stockDisponible, setStockDisponible] = useState({ platos: [], bebidas: [], extras: [] });
@@ -113,10 +113,18 @@ export default function PedidosPage() {
       const params = { page, pageSize: PAGE_SIZE };
       if (filt.tipo_pedido) params.tipo_pedido = filt.tipo_pedido;
       if (filt.ambiente)    params.ambiente    = filt.ambiente;
+      if (filt.desde)       params.desde       = filt.desde;
+      if (filt.hasta)       params.hasta       = filt.hasta;
 
-      const result = await pedidoService.getAll(params);
-      setPedidos(result.data ?? []);
-      setTotalPedidos(result.total ?? 0);
+      // Caja cerrada: solo listar si el usuario eligió una fecha
+      if (!cajaData && !filt.desde && !filt.hasta) {
+        setPedidos([]);
+        setTotalPedidos(0);
+      } else {
+        const result = await pedidoService.getAll(params);
+        setPedidos(result.data ?? []);
+        setTotalPedidos(result.total ?? 0);
+      }
 
       await cargarStockDelDia();
     } catch (err) {
@@ -138,6 +146,8 @@ export default function PedidosPage() {
     return map;
   }, [stockDisponible]);
 
+  const ORDEN_TIPO = { PLATO: 0, BEBIDA: 1, EXTRA: 2 };
+
   const productosFiltrados = useMemo(() => productos.filter((p) => {
     const cat = categoriaActiva === "Todos" || p.tipo === categoriaActiva;
     const search = p.nombre.toLowerCase().includes(searchProducto.toLowerCase());
@@ -150,7 +160,10 @@ export default function PedidosPage() {
     }
 
     return cat && search && tieneStock;
-  }), [productos, categoriaActiva, searchProducto, stockInfoMap]);
+  }).sort((a, b) =>
+    (ORDEN_TIPO[a.tipo] ?? 99) - (ORDEN_TIPO[b.tipo] ?? 99) ||
+    a.id_producto - b.id_producto
+  ), [productos, categoriaActiva, searchProducto, stockInfoMap]);
 
 
   function agregarProducto(producto) {
@@ -1232,13 +1245,47 @@ export default function PedidosPage() {
                   <option value="OFICINA">Oficina</option>
                 </Form.Select>
               </Col>
+              {!cajaAbierta && (
+                <>
+                  <Col xs="auto">
+                    <Form.Label className="fw-semibold mb-1">Desde</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={filtros.desde}
+                      max={filtros.hasta || undefined}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const nf = { ...filtros, desde: v, hasta: filtros.hasta || v };
+                        setFiltros(nf);
+                        setCurrentPage(1);
+                        loadData(1, nf);
+                      }}
+                    />
+                  </Col>
+                  <Col xs="auto">
+                    <Form.Label className="fw-semibold mb-1">Hasta</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={filtros.hasta}
+                      min={filtros.desde || undefined}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const nf = { ...filtros, hasta: v, desde: filtros.desde || v };
+                        setFiltros(nf);
+                        setCurrentPage(1);
+                        loadData(1, nf);
+                      }}
+                    />
+                  </Col>
+                </>
+              )}
               <Col xs="auto" className="d-flex align-items-end">
-                {(filtros.tipo_pedido || filtros.ambiente) && (
+                {(filtros.tipo_pedido || filtros.ambiente || filtros.desde || filtros.hasta) && (
                   <Button
                     variant="outline-secondary"
                     size="sm"
                     onClick={() => {
-                      const nf = { tipo_pedido: '', ambiente: '' };
+                      const nf = { tipo_pedido: '', ambiente: '', desde: '', hasta: '' };
                       setFiltros(nf);
                       setCurrentPage(1);
                       loadData(1, nf);
@@ -1257,7 +1304,10 @@ export default function PedidosPage() {
 
             {!pedidos.length ? (
               <p className="text-center text-muted my-4">
-                <i className="bi bi-inbox me-2"></i>No hay pedidos registrados
+                <i className="bi bi-inbox me-2"></i>
+                {!cajaAbierta && !filtros.desde && !filtros.hasta
+                  ? "Caja cerrada: selecciona una fecha para ver los pedidos"
+                  : "No hay pedidos registrados"}
               </p>
             ) : (() => {
               const totalPages = Math.ceil(totalPedidos / PAGE_SIZE);
@@ -1678,7 +1728,20 @@ export default function PedidosPage() {
         <p className="text-center text-muted">No hay datos del pedido.</p>
       )}
     </Modal.Body>
-    <Modal.Footer>
+    <Modal.Footer className="justify-content-between">
+      <span className="text-muted fw-semibold">
+        {modalVer.pedido?.created_at && (
+          <>
+            <i className="bi bi-clock me-1"></i>
+            {new Intl.DateTimeFormat("es-BO", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "America/La_Paz",
+            }).format(new Date(modalVer.pedido.created_at))}
+          </>
+        )}
+      </span>
       <Button variant="secondary" onClick={cerrarModalVer}>
         <i className="bi bi-x-circle me-2"></i>Cerrar
       </Button>
